@@ -235,7 +235,7 @@ export default function ScreenPage() {
           )}
 
           {scene === 'lobby' && (
-            <section className="scene on">
+            <section className="scene on" id="s-lobby">
               <div className="lobby-center">
                 <div className={`title-hero ${titleImage ? 'filled' : ''}`} style={titleImage ? { backgroundImage: `url("${titleImage}")` } : undefined}>
                   <span>타이틀 이미지</span>
@@ -252,7 +252,7 @@ export default function ScreenPage() {
           )}
 
           {scene === 'question' && question && (
-            <section className="scene on">
+            <section className="scene on" id="s-question">
               <div className="q-hud">
                 <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
                   <b className="num">{progress.answered}</b><span>제출 / {progress.total || count}</span>
@@ -268,7 +268,7 @@ export default function ScreenPage() {
           )}
 
           {scene === 'tally' && tally && (
-            <section className="scene on">
+            <section className="scene on" id="s-tally">
               <p className="tally-q">{tally.index + 1}. {tally.question}</p>
               <div className="answer-hero">
                 <span className="answer-hero__label">정답</span>

@@ -197,11 +197,6 @@ html, body { height: 100%; overflow: hidden; }
 .submit-count { text-align: right; }
 .submit-count b { display: block; font-family: var(--font-num); font-size: 44px; font-weight: 700; color: var(--sig-4); line-height: 1; }
 .submit-count span { font-size: 12px; color: var(--dim); letter-spacing: .1em; font-weight: 700; }
-.submit-count i {
-  display: block; font-style: normal; margin-top: 5px;
-  font-size: 12px; font-weight: 700; color: var(--sig-3);
-}
-.submit-count i b { font-family: var(--font-num); font-size: 14px; }
 
 /* 보기 (대형 화면) */
 .opts-lg {

@@ -381,7 +381,6 @@ export default function HostPage() {
               <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
                 <b className="num">{progress.answered}</b>
                 <span>제출 / {progress.total || players.length}</span>
-                {progress.changed > 0 && <i>답 바꿈 <b className="num">{progress.changed}</b></i>}
               </div>
             </div>
             <div className="q-body">
