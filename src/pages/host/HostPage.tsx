@@ -173,7 +173,7 @@ export default function HostPage() {
   keys.current = e => {
     if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement).tagName)) return;
     const k = e.key.toLowerCase();
-    if (k === 'f') { e.preventDefault(); togglePresent(); }
+    if (k === 'f' && room) { e.preventDefault(); togglePresent(); }   // 방을 만들기 전에는 발표 모드 없음
     if (k === 'e' && can.endq) { e.preventDefault(); send('host.endQuestion'); }
     if (k === 'b' && can.board) { e.preventDefault(); send('host.scoreboard'); }
     if (e.code === 'Space' || k === 'arrowright') {
@@ -307,7 +307,7 @@ export default function HostPage() {
 
         <div className="panel__foot">
           <button className="btn btn--sm btn--primary" disabled={!room} onClick={openScreen}>관객 화면 열기</button>
-          <button className="btn btn--sm" onClick={togglePresent}>발표 모드 (F)</button>
+          <button className="btn btn--sm" disabled={!room} onClick={togglePresent}>발표 모드 (F)</button>
           <a className="btn btn--sm" href="/admin" style={{ textAlign: 'center', textDecoration: 'none' }}>출제 화면</a>
           <button className="btn btn--sm btn--danger" disabled={!room} onClick={closeRoom}>방 종료</button>
         </div>
@@ -320,7 +320,7 @@ export default function HostPage() {
           <span className="eyebrow">{PHASE_LABEL[phase]}</span>
           <div className="right">
             <span className="badge">{quiz?.title ?? '퀴즈를 선택하세요'}</span>
-            <button className="btn btn--sm btn--ghost" onClick={togglePresent}>전체화면</button>
+            <button className="btn btn--sm btn--ghost" disabled={!room} onClick={togglePresent}>전체화면</button>
           </div>
         </div>
 
