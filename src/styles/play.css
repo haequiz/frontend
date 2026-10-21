@@ -130,6 +130,8 @@ input { user-select: text; }
 .answers .glyph { font-size: 34px; opacity: .85; flex: none; }
 .answers img { max-height: 90px; max-width: 40%; border-radius: 10px; }
 .ox button.picked, .answers button.picked { outline-color: var(--chalk); }
+/* 답은 한 번만 — 낸 뒤에는 고른 것만 또렷하게 */
+.ox button:disabled:not(.picked), .answers button:disabled:not(.picked) { opacity: .3; }
 
 /* 주관식 */
 .short { display: grid; grid-template-columns: 1fr auto; gap: 16px; max-width: 900px; width: 100%; margin: 0 auto; }

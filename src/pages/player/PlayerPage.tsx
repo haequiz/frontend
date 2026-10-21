@@ -43,7 +43,7 @@ export default function PlayerPage() {
   const [me, setMe] = useState<JoinReply | null>(null);
   const [quiz, setQuiz] = useState<QuizMeta | null>(null);
   const [question, setQuestion] = useState<QuestionView | null>(null);
-  const [mine, setMine] = useState<{ value: string; label: string; changed: boolean } | null>(null);
+  const [mine, setMine] = useState<{ value: string; label: string } | null>(null);
   const [result, setResult] = useState<PersonalResult | null>(null);
   const [rank, setRank] = useState<PersonalRank | null>(null);
   const [final, setFinal] = useState<PersonalFinal | null>(null);
@@ -62,6 +62,7 @@ export default function PlayerPage() {
 
   const meRef = useRef<JoinReply | null>(null);
   meRef.current = me;
+  const sending = useRef(false);   // 빠르게 두 번 눌러도 한 번만 보낸다
 
   /* ---------- 입장 · 재입장 ---------- */
   async function join(who: Omit<Saved, 'token'> & { token?: string }, silent = false) {
@@ -94,7 +95,7 @@ export default function PlayerPage() {
     setScore(s.score);
     setWatching(s.videoPlaying);
     setQuestion(s.question);
-    setMine(s.myAnswer ? { ...s.myAnswer, changed: false } : null);
+    setMine(s.myAnswer);
     setShortValue(s.myAnswer && s.question?.type === 'short' ? s.myAnswer.value : '');
     if (s.state === 'question') setView('question');
     else if (s.state === 'reveal' && s.result) { setResult(s.result); setView('result'); }
@@ -162,15 +163,18 @@ export default function PlayerPage() {
     join({ pin, grade: g, classNo: c, name: n, token: sameSeat ? s.token : undefined });
   }
 
-  /* ---------- 답 제출 (마감 전까지 몇 번이든) ---------- */
+  /* ---------- 답 제출 (한 번만, 바꿀 수 없다) ---------- */
   async function submit(value: string) {
-    if (view !== 'question') return;
+    if (view !== 'question' || mine || sending.current) return;
+    sending.current = true;
     if (navigator.vibrate) navigator.vibrate(14);
     try {
-      const r = await rt.request<{ submitted: string; changed: boolean }>('player.answer', { value });
-      setMine({ value, label: r.submitted, changed: r.changed });
+      const r = await rt.request<{ submitted: string }>('player.answer', { value });
+      setMine({ value, label: r.submitted });
     } catch (e) {
       toast((e as Error).message, true);
+    } finally {
+      sending.current = false;
     }
   }
 
@@ -247,16 +251,16 @@ export default function PlayerPage() {
             {mine && (
               <div className="submit-state">
                 <span className="submit-state__dot" />
-                <span>{mine.changed ? '답을 바꿨습니다' : '제출됨'}</span>
+                <span>제출됨</span>
                 <b>{mine.label}</b>
-                <em>마감 전까지 바꿀 수 있어요</em>
+                <em>마감되면 결과가 나와요</em>
               </div>
             )}
             {question.type === 'ox' && (
               <div className="ox">
                 {question.options.map((o, i) => (
                   <button key={o.id} type="button" className={`${optionColor('ox', i, o.text)} ${mine?.value === o.id ? 'picked' : ''}`}
-                    onClick={() => submit(o.id)}>{o.text}</button>
+                    disabled={!!mine} onClick={() => submit(o.id)}>{o.text}</button>
                 ))}
               </div>
             )}
@@ -264,7 +268,7 @@ export default function PlayerPage() {
               <div className={`answers ${question.options.length > 4 ? 'many' : ''}`}>
                 {question.options.map((o, i) => (
                   <button key={o.id} type="button" className={`${optionColor('mc', i)} ${mine?.value === o.id ? 'picked' : ''}`}
-                    onClick={() => submit(o.id)}>
+                    disabled={!!mine} onClick={() => submit(o.id)}>
                     <span className="glyph">{GLYPHS[i % GLYPHS.length]}</span>
                     {o.image && <img src={mediaUrl(o.image)} alt="" />}
                     <span>{o.text || `보기 ${i + 1}`}</span>
@@ -275,8 +279,8 @@ export default function PlayerPage() {
             {question.type === 'short' && (
               <form className="short" onSubmit={e => { e.preventDefault(); if (shortValue.trim()) submit(shortValue.trim()); }}>
                 <input maxLength={100} placeholder="정답 입력" autoComplete="off" value={shortValue}
-                  onChange={e => setShortValue(e.target.value)} />
-                <button className="btn btn--primary">{mine ? '답 바꾸기' : '제출'}</button>
+                  disabled={!!mine} onChange={e => setShortValue(e.target.value)} />
+                <button className="btn btn--primary" disabled={!!mine}>제출</button>
               </form>
             )}
           </section>
@@ -338,7 +342,7 @@ export default function PlayerPage() {
         <div className="watch">
           <div className="watch__icon">🎬</div>
           <b>앞 화면을 봐 주세요</b>
-          <p>영상이 끝나면 퀴즈가 이어집니다</p>
+          <p>잠시 후 퀴즈가 이어집니다</p>
         </div>
       )}
     </>

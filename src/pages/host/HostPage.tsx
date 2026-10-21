@@ -10,7 +10,7 @@ import { GLYPHS, TYPE_LABEL, optionColor, toast } from '../../lib/ui';
 import { Podium, Row } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 import type {
-  BoardRow, Ended, PlayerList, PlayerRow, Progress, QuestionView, Quiz, QuizSummary, Reveal, Tally,
+  BoardRow, Ended, PlayerList, PlayerRow, Playing, Progress, QuestionView, Quiz, QuizSummary, Reveal, Tally,
 } from '../../lib/types';
 
 /* ============================================================
@@ -28,7 +28,8 @@ interface Room {
 interface ResumeReply extends Room {
   state: 'lobby' | 'question' | 'reveal' | 'scoreboard' | 'ended';
   qIndex: number;
-  videoId: number | null;
+  video: Playing | null;
+  locked: boolean;
   players: PlayerList;
   question: QuestionView | null;
   progress: Progress | null;
@@ -57,7 +58,8 @@ export default function HostPage() {
   const [tally, setTally] = useState<Tally | null>(null);
   const [board, setBoard] = useState<BoardRow[]>([]);
   const [ended, setEnded] = useState<Ended | null>(null);
-  const [playingVideo, setPlayingVideo] = useState<number | null>(null);
+  const [video, setVideo] = useState<Playing | null>(null);   // 관객 화면에서 재생 중인 영상
+  const [locked, setLocked] = useState(false);                 // 문제 영상 절반 전 — 아직 답을 받지 않는다
   const [qr, setQr] = useState('');
   const [present, setPresent] = useState(false);
   const [online, setOnline] = useState(true);
@@ -80,7 +82,8 @@ export default function HostPage() {
       openRoom(r);
       setPlayers(r.players.list);
       setQIndex(r.qIndex);
-      setPlayingVideo(r.videoId);
+      setVideo(r.video);
+      setLocked(r.locked);
       if (r.state === 'question' && r.question) { setQuestion(r.question); setProgress(r.progress!); setPhase('question'); }
       else if (r.state === 'reveal' && r.reveal) { setTally(r.reveal.tally); setPhase('tally'); }
       else if (r.state === 'scoreboard' && r.scoreboard) { setBoard(r.scoreboard); setPhase('board'); }
@@ -100,7 +103,8 @@ export default function HostPage() {
       openRoom(r);
       setPlayers([]);
       setQIndex(-1);
-      setPlayingVideo(null);
+      setVideo(null);
+      setLocked(false);
       setPhase('lobby');
     } catch (e) {
       toast((e as Error).message, true);
@@ -130,7 +134,9 @@ export default function HostPage() {
       rt.on<Reveal>('game.reveal', (d, ev) => { if (mine(ev)) { setTally(d.tally); setPhase('tally'); } }),
       rt.on<{ scoreboard: BoardRow[] }>('game.scoreboard', (d, ev) => { if (mine(ev)) { setBoard(d.scoreboard); setPhase('board'); } }),
       rt.on<Ended>('game.ended', (d, ev) => { if (mine(ev)) { setEnded(d); setPhase('end'); } }),
-      rt.on<{ video: { id: number } | null }>('game.video', (d, ev) => mine(ev) && setPlayingVideo(d.video?.id ?? null)),
+      rt.on<{ video: Playing | null; locked: boolean }>('game.video', (d, ev) => {
+        if (mine(ev)) { setVideo(d.video); setLocked(d.locked); }
+      }),
       rt.on('game.closed', (_d, ev) => { if (mine(ev)) sessionStorage.removeItem(STORE); }),
     ];
     rt.subscribe('/user/queue/host');
@@ -157,7 +163,7 @@ export default function HostPage() {
   const total = room?.quiz.questions.length ?? 0;
   const isLast = qIndex >= total - 1;
   const can = {
-    start: phase === 'lobby',
+    start: phase === 'lobby' && !video,   // 오프닝 영상 중에는 다시 누르지 않는다
     endq: phase === 'question',
     board: phase === 'tally',
     next: phase === 'tally' || phase === 'board',
@@ -233,7 +239,9 @@ export default function HostPage() {
 
           <div className="section-label">진행</div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <button className="btn btn--primary" disabled={!can.start} onClick={() => send('host.start')}>퀴즈 시작</button>
+            <button className="btn btn--primary" disabled={!can.start} onClick={() => send('host.start')}>
+              {quiz?.openingVideo ? '퀴즈 시작 · 오프닝 영상부터' : '퀴즈 시작'}
+            </button>
             <button className={`btn ${progress.total > 0 && progress.answered >= progress.total ? 'btn--primary' : ''}`}
               disabled={!can.endq} onClick={() => send('host.endQuestion')}>답안 마감</button>
             <button className="btn" disabled={!can.board} onClick={() => send('host.scoreboard')}>순위 보기</button>
@@ -242,20 +250,31 @@ export default function HostPage() {
             </button>
           </div>
 
+          {video && (
+            <div className="vplaying">
+              <span>▶ <b>{video.title || '제목 없는 영상'}</b> 재생 중
+                {video.kind === 'question' && (locked ? ' · 절반이 지나면 답을 받습니다' : ' · 답 받는 중')}
+              </span>
+              <button className="btn btn--sm btn--block" onClick={() => send('host.video', { videoId: null })}>
+                영상 건너뛰기 ▶▶
+              </button>
+            </div>
+          )}
+
           {!!quiz?.videos.length && (
             <>
               <div className="section-label">영상 · 관객 화면에 재생</div>
               <div className="qnav">
-                {quiz.videos.map(v => (
-                  <button key={v.id} className={v.id === playingVideo ? 'cur' : ''}
-                    onClick={() => send('host.video', { videoId: v.id })}>
-                    <span className="n">{v.id === playingVideo ? '■' : '▶'}</span>
-                    <span className="t">{v.title || '제목 없는 영상'}</span>
-                  </button>
-                ))}
+                {quiz.videos.map(v => {
+                  const on = video?.kind === 'clip' && video.id === v.id;
+                  return (
+                    <button key={v.id} className={on ? 'cur' : ''} onClick={() => send('host.video', { videoId: v.id })}>
+                      <span className="n">{on ? '■' : '▶'}</span>
+                      <span className="t">{v.title || '제목 없는 영상'}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <button className="btn btn--sm btn--block" style={{ marginTop: 6 }} disabled={!playingVideo}
-                onClick={() => send('host.video', { videoId: null })}>■ 퀴즈 화면으로 돌아가기</button>
             </>
           )}
 

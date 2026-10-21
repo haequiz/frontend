@@ -41,6 +41,14 @@ html, body { height: 100%; overflow: hidden; }
   color: var(--dim); margin: 18px 0 8px;
 }
 
+/* 관객 화면에서 재생 중인 영상 */
+.vplaying {
+  display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.5; color: var(--muted);
+}
+.vplaying b { color: var(--chalk); }
+
 /* 문항 네비게이터 */
 .qnav { display: grid; gap: 4px; }
 .qnav button {

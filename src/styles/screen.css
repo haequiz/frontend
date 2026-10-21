@@ -197,3 +197,26 @@
   background: var(--stage-3); border: 1px solid var(--line); color: var(--chalk);
   font: inherit; font-size: 20px; font-weight: 700; cursor: pointer;
 }
+
+/* 문제 영상이 절반을 지나면 영상 아래쪽에 문제와 보기 */
+.vq {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 64px 5vw 36px; text-align: center; color: var(--chalk);
+  background: linear-gradient(to top, rgba(0, 0, 0, .9) 65%, rgba(0, 0, 0, 0));
+  animation: vq-in .45s ease-out;
+}
+.vq .eyebrow { margin: 0; color: rgba(255, 255, 255, .7); }
+.vq__text {
+  margin: 0; max-width: 92%;
+  font-size: clamp(26px, 3.2vw, 56px); font-weight: 900; line-height: 1.25; letter-spacing: -.02em;
+}
+.vq .opts-lg { flex: 0 0 auto; grid-auto-rows: auto; width: min(100%, 1200px); gap: 10px; }
+.vq .opt-lg {
+  min-height: 0; padding: 12px 20px; justify-content: center; gap: 10px;
+  font-size: clamp(18px, 1.8vw, 30px);
+}
+.vq .opt-lg .glyph { font-size: 20px; }
+.vq .opt-lg img { width: 44px; height: 44px; }
+.vq .short-hint { padding: 14px 24px; font-size: 20px; color: rgba(255, 255, 255, .8); }
+@keyframes vq-in { from { opacity: 0; transform: translateY(28px); } }

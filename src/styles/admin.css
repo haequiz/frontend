@@ -81,6 +81,11 @@ html, body { height: 100%; overflow: hidden; }
 .imgslot.filled .clear { display: block; }
 .imgslot.busy { opacity: .5; pointer-events: none; }
 
+/* 영상 칸 (오프닝 · 엔딩 · 문제 영상) */
+.vslot { display: grid; gap: 8px; justify-items: start; }
+.vslot__preview { width: 100%; max-width: 320px; aspect-ratio: 16 / 9; border-radius: var(--r-md); background: #000; }
+.vslot__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* 문항 카드 -------------------------------------------------- */
 .qcard { margin-bottom: 14px; overflow: hidden; }
 .qcard__head {

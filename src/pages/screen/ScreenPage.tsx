@@ -7,7 +7,7 @@ import { getOperator, goLogin, logout } from '../../lib/auth';
 import { applyTheme } from '../../lib/theme';
 import { joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast, toggleFullscreen } from '../../lib/ui';
-import type { BoardRow, Ended, Progress, QuestionView, QuizMeta, Reveal, Tally, Video } from '../../lib/types';
+import type { BoardRow, Ended, Playing, Progress, QuestionView, QuizMeta, Reveal, Tally } from '../../lib/types';
 import { Podium, Row } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 
@@ -23,7 +23,7 @@ interface JoinReply {
   quiz: QuizMeta;
   state: string;
   count: number;
-  videoId: number | null;
+  video: Playing | null;
   question: QuestionView | null;
   progress: Progress | null;
   reveal: Reveal | null;
@@ -53,13 +53,15 @@ export default function ScreenPage() {
   const [byeMsg, setByeMsg] = useState('');
   const [qr, setQr] = useState('');
   const [videoBadge, setVideoBadge] = useState('');
-  const [playing, setPlaying] = useState<Video | null>(null);
+  const [playing, setPlaying] = useState<Playing | null>(null);
   const [needTap, setNeedTap] = useState(false);
+  const [showQ, setShowQ] = useState(false);   // 문제 영상이 절반을 지나면 아래쪽에 문제를 띄운다
 
   const pinRef = useRef('');
-  const playingRef = useRef<Video | null>(null);
+  const playingRef = useRef<Playing | null>(null);
+  const halfSent = useRef(false);
   const videoEl = useRef<HTMLVideoElement>(null);
-  const videoSrc = useRef(new Map<number, string>());
+  const videoSrc = useRef(new Map<string, string>());   // 영상 주소 → 미리 받아 둔 blob 주소
   const preloading = useRef(false);
 
   async function join(p: string) {
@@ -72,12 +74,13 @@ export default function ScreenPage() {
       applyTheme(r.quiz.theme);
       setCount(r.count);
       qrDataUrl(joinUrl(r.pin), 800).then(setQr).catch(() => setQr(''));
-      preloadVideos(r.quiz.videos ?? []);
+      preloadVideos(r.quiz.videoUrls ?? []);
       if (r.question) { setQuestion(r.question); setProgress(r.progress ?? progress); setScene('question'); }
       else if (r.reveal) { setTally(r.reveal.tally); setScene('tally'); }
       else if (r.scoreboard) { setBoard(r.scoreboard); setScene('board'); }
       else if (r.ended) { setEnded(r.ended); setScene('end'); }
       else setScene('lobby');
+      playVideo(r.video);
     } catch (e) {
       toast((e as Error).message, true);
       setScene('connect');
@@ -85,13 +88,13 @@ export default function ScreenPage() {
   }
 
   /* ---------- 영상: 미리 통째로 받아 두기 (행사 중 네트워크가 느려도 끊기지 않게) ---------- */
-  async function preloadVideos(list: Video[]) {
+  async function preloadVideos(list: string[]) {
     if (preloading.current) return;
     preloading.current = true;
-    for (const [i, v] of list.entries()) {
-      if (v.id == null || videoSrc.current.has(v.id)) continue;
+    for (const [i, url] of list.entries()) {
+      if (videoSrc.current.has(url)) continue;
       try {
-        const res = await fetch(mediaUrl(v.url));
+        const res = await fetch(mediaUrl(url));
         if (!res.ok || !res.body) throw new Error(String(res.status));
         const totalBytes = Number(res.headers.get('content-length')) || 0;
         const reader = res.body.getReader();
@@ -104,19 +107,22 @@ export default function ScreenPage() {
           got += value.length;
           setVideoBadge(`영상 받는 중 ${i + 1}/${list.length}` + (totalBytes ? ` · ${Math.round((got / totalBytes) * 100)}%` : ''));
         }
-        videoSrc.current.set(v.id, URL.createObjectURL(new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' })));
+        videoSrc.current.set(url, URL.createObjectURL(new Blob(chunks as BlobPart[], { type: res.headers.get('content-type') || 'video/mp4' })));
       } catch {
         /* 못 받은 영상은 재생할 때 주소에서 바로 받는다 */
       }
     }
     preloading.current = false;
-    const ready = list.filter(v => v.id != null && videoSrc.current.has(v.id)).length;
+    const ready = list.filter(u => videoSrc.current.has(u)).length;
     setVideoBadge(ready === list.length ? '' : `영상 ${ready}/${list.length} 준비됨`);
   }
 
-  function playVideo(v: Video | null) {
+  function playVideo(v: Playing | null) {
+    if (v && v.seq === playingRef.current?.seq) return;   // 다시 연결돼도 보던 영상을 처음부터 다시 틀지 않는다
     playingRef.current = v;
+    halfSent.current = false;
     setPlaying(v);
+    setShowQ(false);
     setNeedTap(false);
     const el = videoEl.current;
     if (!el) return;
@@ -126,9 +132,28 @@ export default function ScreenPage() {
       el.load();
       return;
     }
-    el.src = (v.id != null && videoSrc.current.get(v.id)) || mediaUrl(v.url);
+    el.src = videoSrc.current.get(v.url) || mediaUrl(v.url);
     // 이 창에서 클릭 · 키 입력이 한 번도 없으면 브라우저가 소리 있는 자동재생을 막는다
     el.play().catch(() => setNeedTap(true));
+  }
+
+  /** 문제 영상이 절반을 지나면 문제를 띄우고 서버에 알린다 → 태블릿에 문제가 열린다 */
+  function onVideoTime() {
+    const v = playingRef.current, el = videoEl.current;
+    if (!v || !el || v.kind !== 'question' || halfSent.current) return;
+    // 길이 정보가 없는 영상(duration 이 Infinity)은 끝날 때 열린다
+    if (Number.isFinite(el.duration) && el.currentTime >= el.duration / 2) {
+      halfSent.current = true;
+      setShowQ(true);
+      rt.request('screen.videoHalf', { seq: v.seq }).catch(() => {});
+    }
+  }
+
+  function onVideoEnded() {
+    const v = playingRef.current;
+    if (!v) return;
+    // 마지막 장면에 멈춰 두면 서버가 다음 장면(1번 문제 · 퀴즈 화면 · 최종 순위)을 보낸다. 알리지 못하면 바로 내린다
+    rt.request('screen.videoEnded', { seq: v.seq }).catch(() => playVideo(null));
   }
 
   /* ---------- 실시간 ---------- */
@@ -147,7 +172,7 @@ export default function ScreenPage() {
       rt.on<Reveal>('game.reveal', d => { setTally(d.tally); setScene('tally'); }),
       rt.on<{ scoreboard: BoardRow[] }>('game.scoreboard', d => { setBoard(d.scoreboard); setScene('board'); }),
       rt.on<Ended>('game.ended', d => { setEnded(d); setScene('end'); }),
-      rt.on<{ video: Video | null }>('game.video', d => playVideo(d.video)),
+      rt.on<{ video: Playing | null }>('game.video', d => playVideo(d.video)),
       rt.on<{ reason: string }>('game.closed', d => {
         playVideo(null);
         rt.unsubscribe(`/topic/room.${pinRef.current}.screen`);
@@ -238,19 +263,7 @@ export default function ScreenPage() {
                 <h1 className="q-big">{question.text}</h1>
                 {question.image && <div className="q-media on"><img src={mediaUrl(question.image)} alt="" /></div>}
               </div>
-              {question.type === 'short' ? (
-                <div className="short-hint">태블릿에 정답을 직접 입력하세요</div>
-              ) : (
-                <div className={`opts-lg ${question.options.length <= 2 && question.type !== 'ox' ? 'one-col' : ''}`}>
-                  {question.options.map((o, i) => (
-                    <div key={o.id} className={`opt-lg ${optionColor(question.type, i, o.text)}`}>
-                      <span className="glyph">{question.type === 'ox' ? '' : GLYPHS[i % GLYPHS.length]}</span>
-                      {o.image && <img src={mediaUrl(o.image)} alt="" />}
-                      <span>{o.text}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <QuestionOptions q={question} />
             </section>
           )}
 
@@ -330,12 +343,14 @@ export default function ScreenPage() {
       </div>
 
       <div className="vstage" hidden={!playing}>
-        <video ref={videoEl} playsInline onEnded={() => {
-          const v = playingRef.current;
-          if (!v) return;
-          rt.request('screen.videoEnded', { videoId: v.id }).catch(() => {});
-          playVideo(null);
-        }} />
+        <video ref={videoEl} playsInline onTimeUpdate={onVideoTime} onEnded={onVideoEnded} />
+        {showQ && playing?.kind === 'question' && question && (
+          <div className="vq">
+            <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
+            <h2 className="vq__text">{question.text}</h2>
+            <QuestionOptions q={question} />
+          </div>
+        )}
         {needTap && (
           <button className="vstage__tap" type="button" onClick={() => { setNeedTap(false); videoEl.current?.play(); }}>
             화면을 한 번 클릭하면 영상이 재생됩니다
@@ -343,5 +358,21 @@ export default function ScreenPage() {
         )}
       </div>
     </>
+  );
+}
+
+/** 문제 화면과 문제 영상 아래쪽에 함께 쓰는 보기 */
+function QuestionOptions({ q }: { q: QuestionView }) {
+  if (q.type === 'short') return <div className="short-hint">태블릿에 정답을 직접 입력하세요</div>;
+  return (
+    <div className={`opts-lg ${q.options.length <= 2 && q.type !== 'ox' ? 'one-col' : ''}`}>
+      {q.options.map((o, i) => (
+        <div key={o.id} className={`opt-lg ${optionColor(q.type, i, o.text)}`}>
+          <span className="glyph">{q.type === 'ox' ? '' : GLYPHS[i % GLYPHS.length]}</span>
+          {o.image && <img src={mediaUrl(o.image)} alt="" />}
+          <span>{o.text}</span>
+        </div>
+      ))}
+    </div>
   );
 }

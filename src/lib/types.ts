@@ -24,6 +24,7 @@ export interface Question {
   type: QuestionType;
   text: string;
   image: string;
+  video: string;   // 문항으로 넘어가면 먼저 재생, 절반쯤에 문제를 띄운다
   points: number;
   explanation: string;
   options: Option[];
@@ -45,6 +46,8 @@ export interface Quiz {
   description: string;
   titleImage: string;
   backgroundImage: string;
+  openingVideo: string;   // 퀴즈 시작 때 먼저 재생
+  endingVideo: string;    // 퀴즈가 끝나면 재생
   theme: Theme;
   questions: Question[];
   videos: Video[];
@@ -69,7 +72,16 @@ export interface QuizMeta {
   backgroundImage: string;
   theme: Theme;
   total: number;
-  videos?: Video[] | null;
+  videoUrls?: string[] | null;   // 관객 화면이 미리 받아 둘 영상 (재생 순서대로)
+}
+
+/** 관객 화면에서 재생 중인 영상. seq 로 '절반 지남 · 끝남' 알림을 맞춘다 */
+export interface Playing {
+  seq: number;
+  kind: 'opening' | 'question' | 'ending' | 'clip';
+  id: number | null;
+  title: string;
+  url: string;
 }
 
 export interface QuestionView {

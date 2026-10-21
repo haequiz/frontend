@@ -18,7 +18,7 @@ const LABEL_STYLE = { fontSize: 13, fontWeight: 700, color: 'var(--muted)', marg
 
 function blankQ(type: QuestionType): Question {
   const q: Question = {
-    type, text: '', image: '', points: 1000, explanation: '', options: [], answers: [],
+    type, text: '', image: '', video: '', points: 1000, explanation: '', options: [], answers: [],
     caseSensitive: false, ignoreSpaces: true, ignorePunctuation: false,
   };
   if (type === 'mc') q.options = [0, 1, 2, 3].map(i => ({ text: '', image: '', correct: i === 0 }));
@@ -31,7 +31,7 @@ export default function AdminPage() {
   const [list, setList] = useState<QuizSummary[]>([]);
   const [cur, setCur] = useState<Quiz | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [videoUpload, setVideoUpload] = useState<{ key: string; pct: number } | null>(null);   // 영상은 한 번에 하나씩
   const [closed, setClosed] = useState<Set<number>>(new Set());
 
   const filePicker = useRef<HTMLInputElement>(null);
@@ -167,21 +167,24 @@ export default function AdminPage() {
     }
   }
 
-  async function onVideoPicked(file?: File) {
+  /** 영상을 S3 에 올리고 apply 로 퀴즈에 넣는다. key 는 진행률을 보여 줄 칸 */
+  async function uploadVideo(key: string, file: File | undefined, apply: (q: Quiz, url: string) => void) {
     const target = curRef.current;
     if (!file || !target) return;
-    setVideoProgress(0);
+    setVideoUpload({ key, pct: 0 });
     try {
-      const url = await upload('video', file, setVideoProgress);
-      if (curRef.current?.id !== target.id) return toast('올리는 사이 다른 퀴즈로 이동해서 목록에 넣지 않았습니다.', true);
-      mutate(q => q.videos.push({ title: file.name.replace(/\.[^.]+$/, ''), url }));
+      const url = await upload('video', file, pct => setVideoUpload({ key, pct }));
+      if (curRef.current?.id !== target.id) return toast('올리는 사이 다른 퀴즈로 이동해서 넣지 않았습니다.', true);
+      mutate(q => apply(q, url));
       toast('영상을 올렸습니다. 저장해야 퀴즈에 반영됩니다.');
     } catch (e) {
       toast((e as Error).message, true);
     } finally {
-      setVideoProgress(null);
+      setVideoUpload(null);
     }
   }
+
+  const videoSlot = (key: string) => ({ busy: videoUpload !== null, pct: videoUpload?.key === key ? videoUpload.pct : null });
 
   function setTheme(fn: (t: Theme) => void, preset = 'custom') {
     mutate(q => {
@@ -307,7 +310,22 @@ export default function AdminPage() {
 
                 {/* 영상 */}
                 <section className="card box">
-                  <h3>영상 <small style={{ color: 'var(--dim)', fontWeight: 400 }}>진행 화면의 버튼으로 관객 화면(빔프로젝터)에 재생합니다 · mp4 권장</small></h3>
+                  <h3>영상 <small style={{ color: 'var(--dim)', fontWeight: 400 }}>관객 화면(빔프로젝터)에서만 재생됩니다 · mp4 권장</small></h3>
+                  <div className="grid-2">
+                    <div className="field">
+                      <span>오프닝 영상 <small style={{ color: 'var(--dim)' }}>퀴즈 시작을 누르면 먼저 재생 → 끝나면 1번 문제</small></span>
+                      <VideoSlot url={cur.openingVideo} {...videoSlot('opening')}
+                        onPick={f => uploadVideo('opening', f, (q, url) => { q.openingVideo = url; })}
+                        onClear={() => mutate(q => { q.openingVideo = ''; })} />
+                    </div>
+                    <div className="field">
+                      <span>엔딩 영상 <small style={{ color: 'var(--dim)' }}>결과 발표를 누르면 재생 → 끝나면 최종 순위</small></span>
+                      <VideoSlot url={cur.endingVideo} {...videoSlot('ending')}
+                        onPick={f => uploadVideo('ending', f, (q, url) => { q.endingVideo = url; })}
+                        onClear={() => mutate(q => { q.endingVideo = ''; })} />
+                    </div>
+                  </div>
+                  <div className="section-sub">그 밖의 영상 <small>진행 화면의 버튼으로 아무 때나 재생합니다</small></div>
                   {!cur.videos.length && <p style={{ color: 'var(--dim)', fontSize: 13, margin: '0 0 12px' }}>아직 올린 영상이 없습니다.</p>}
                   {cur.videos.map((v, i) => (
                     <div key={i} className="optrow">
@@ -319,10 +337,14 @@ export default function AdminPage() {
                         onClick={() => confirm(`'${v.title || '제목 없는 영상'}'을 목록에서 뺄까요?`) && mutate(q => { q.videos.splice(i, 1); })}>✕</button>
                     </div>
                   ))}
-                  <label className="btn btn--sm" style={{ cursor: videoProgress === null ? 'pointer' : 'wait' }}>
-                    {videoProgress === null ? '+ 영상 올리기' : `올리는 중 ${videoProgress}%`}
-                    <input type="file" accept="video/mp4,video/webm" hidden disabled={videoProgress !== null}
-                      onChange={e => { onVideoPicked(e.target.files?.[0]); e.target.value = ''; }} />
+                  <label className="btn btn--sm" style={{ cursor: videoUpload === null ? 'pointer' : 'wait' }}>
+                    {videoUpload?.key === 'clip' ? `올리는 중 ${videoUpload.pct}%` : '+ 영상 올리기'}
+                    <input type="file" accept="video/mp4,video/webm" hidden disabled={videoUpload !== null}
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) uploadVideo('clip', f, (q, url) => { q.videos.push({ title: f.name.replace(/\.[^.]+$/, ''), url }); });
+                      }} />
                   </label>
                 </section>
 
@@ -390,11 +412,13 @@ export default function AdminPage() {
                       if (a === 'del') qs.splice(i, 1);
                       if (a.startsWith('type:')) {
                         const fresh = blankQ(a.slice(5) as QuestionType);
-                        Object.assign(fresh, { text: qs[i].text, image: qs[i].image, points: qs[i].points, explanation: qs[i].explanation });
+                        Object.assign(fresh, { text: qs[i].text, image: qs[i].image, video: qs[i].video, points: qs[i].points, explanation: qs[i].explanation });
                         qs[i] = fresh;
                       }
                     })}
-                    pickImage={pickImage} />
+                    pickImage={pickImage}
+                    videoSlot={videoSlot(`q${i}`)}
+                    pickVideo={f => uploadVideo(`q${i}`, f, (z, url) => { z.questions[i].video = url; })} />
                 ))}
 
                 <div className="addq">
@@ -427,9 +451,29 @@ function ImageSlot({ url, className, hint, onPick, onClear }: {
   );
 }
 
-function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage }: {
+/** 영상 한 칸: 올리기 · 미리보기 · 빼기 */
+function VideoSlot({ url, busy, pct, onPick, onClear }: {
+  url: string; busy: boolean; pct: number | null; onPick: (file?: File) => void; onClear: () => void;
+}) {
+  return (
+    <div className="vslot">
+      {url && <video className="vslot__preview" src={mediaUrl(url)} preload="metadata" controls />}
+      <div className="vslot__actions">
+        <label className="btn btn--sm" style={{ cursor: busy ? 'wait' : 'pointer' }}>
+          {pct !== null ? `올리는 중 ${pct}%` : url ? '다른 영상으로 바꾸기' : '+ 영상 올리기'}
+          <input type="file" accept="video/mp4,video/webm" hidden disabled={busy}
+            onChange={e => { onPick(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+        {url && <button className="btn btn--sm btn--danger" type="button" onClick={onClear}>빼기</button>}
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage, videoSlot, pickVideo }: {
   q: Question; i: number; count: number; closed: boolean; toggle: () => void;
   mutate: (fn: (q: Question) => void) => void; action: (a: string) => void; pickImage: (done: (url: string) => void) => void;
+  videoSlot: { busy: boolean; pct: number | null }; pickVideo: (file?: File) => void;
 }) {
   const [answer, setAnswer] = useState('');
   return (
@@ -473,6 +517,11 @@ function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage }
           <span>문제 이미지 (선택)</span>
           <ImageSlot className="imgslot--q" url={q.image}
             onPick={() => pickImage(url => mutate(x => { x.image = url; }))} onClear={() => mutate(x => { x.image = ''; })} />
+        </div>
+
+        <div className="field">
+          <span>문제 영상 (선택) <small style={{ color: 'var(--dim)' }}>문제로 넘어가면 빔프로젝터에 먼저 재생 · 절반쯤에 문제와 보기가 뜨고 태블릿에서 답을 받습니다</small></span>
+          <VideoSlot url={q.video} {...videoSlot} onPick={pickVideo} onClear={() => mutate(x => { x.video = ''; })} />
         </div>
 
         {q.type === 'mc' && (
