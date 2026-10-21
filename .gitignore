@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.local
+.vercel/
+.DS_Store
+
+### 민감 정보 (절대 커밋하지 않는다) ###
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

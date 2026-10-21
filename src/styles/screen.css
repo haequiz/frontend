@@ -1,0 +1,199 @@
+/* ============================================================
+   관객 화면 — 조작 없음. 멀리서 읽히는 것이 전부.
+   host.css 를 그대로 쓰고 필요한 부분만 덧씌운다.
+   ============================================================ */
+
+.shell--solo { grid-template-columns: 1fr; }
+
+/* PIN 입력 */
+.pin-big {
+  width: 100%; text-align: center;
+  font-family: var(--font-num); font-size: 46px; font-weight: 700;
+  letter-spacing: .3em; text-indent: .3em;
+  padding: 18px 10px; border-radius: var(--r-md);
+  background: var(--ink); border: 2px solid var(--line); color: var(--chalk);
+}
+.pin-big:focus { border-color: var(--sig-2); outline: none; }
+
+/* ------------------ 문제 화면 ------------------
+   문제를 화면 한가운데 크게. 보기는 읽히는 선에서 작게. */
+
+/* 문제와 보기를 한 덩어리로 묶어 화면 한가운데 놓는다 */
+#s-question {
+  align-items: center; justify-content: center;
+  gap: clamp(24px, 5vh, 60px);
+}
+
+/* 타이머와 제출 인원은 문제를 밀어내지 않도록 모서리에 띄운다 */
+.q-hud {
+  position: absolute; top: 22px; right: 44px; z-index: 2;
+  display: flex; align-items: center; gap: 26px;
+}
+.q-hud .ring { width: 86px; height: 86px; }
+.q-hud .ring b { font-size: 30px; }
+.q-hud .submit-count b { font-size: 34px; }
+
+.q-center {
+  flex: 0 1 auto; min-height: 0; width: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: clamp(14px, 2.4vh, 30px);
+  text-align: center;
+}
+.q-big {
+  font-size: clamp(38px, 5vw, 92px);
+  font-weight: 900; line-height: 1.22; letter-spacing: -.03em;
+  max-width: 92%;
+}
+.q-center .q-media { flex: 0 1 auto; max-height: 32vh; }
+
+/* 보기 — 화면을 채우지 않고 아래쪽에 얌전히 */
+#s-question .opts-lg {
+  flex: 0 0 auto; grid-auto-rows: auto;
+  width: min(100%, 1200px); margin: 0 auto;
+  gap: 10px;
+}
+#s-question .opt-lg {
+  min-height: 62px; padding: 12px 20px;
+  justify-content: center; gap: 10px;
+  font-size: clamp(17px, 1.5vw, 26px);
+}
+#s-question .opt-lg .glyph { font-size: 20px; }
+#s-question .opt-lg img { width: 44px; height: 44px; }
+#s-question .short-hint { width: min(100%, 900px); margin: 0 auto; font-size: 20px; }
+
+/* ------------------ 정답 발표 ------------------
+   정답과 그 이유가 화면 한가운데. 집계 막대는 아래에 작게. */
+
+#s-tally { align-items: center; justify-content: center; text-align: center; gap: clamp(12px, 2.2vh, 28px); }
+
+.tally-q {
+  margin: 0; max-width: 90%;
+  font-size: clamp(16px, 1.6vw, 26px); font-weight: 700; color: var(--muted);
+}
+
+.answer-hero {
+  flex: 0 0 auto; max-width: min(100%, 1500px);
+  display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.4vh, 18px);
+  padding: clamp(20px, 3.4vh, 46px) clamp(30px, 4.5vw, 80px);
+  border-radius: 28px;
+  background: rgba(43, 217, 166, .09);
+  border: 2px solid rgba(43, 217, 166, .38);
+  animation: answer-in .42s cubic-bezier(.2, 1.25, .4, 1) both;
+}
+.answer-hero__label {
+  font-size: 14px; font-weight: 800; letter-spacing: .26em; color: var(--ok);
+}
+.answer-hero__value {
+  font-size: clamp(42px, 5.6vw, 104px);
+  font-weight: 900; line-height: 1.08; letter-spacing: -.035em; color: var(--ok);
+  word-break: keep-all;
+}
+.answer-hero__why {
+  margin: 0; max-width: 34ch;
+  font-size: clamp(17px, 1.75vw, 32px); line-height: 1.5; color: var(--chalk);
+  word-break: keep-all;
+}
+@keyframes answer-in {
+  from { opacity: 0; transform: scale(.9) }
+  to   { opacity: 1; transform: none }
+}
+
+.bars--compact {
+  flex: 0 0 auto; height: min(28vh, 280px);
+  width: min(100%, 1100px);
+}
+.bars--compact .bar__count { font-size: 24px; }
+.bars--compact .bar__fill { min-height: 42px; padding-top: 7px; }
+.bars--compact .bar__label { font-size: 17px; }
+
+.rows--screen {
+  flex: 0 0 auto; max-height: 34vh; width: min(100%, 1000px);
+  text-align: left;
+}
+.rows--screen .row { padding: 14px 18px; }
+.rows--screen .row__text { font-size: 22px; }
+.rows--screen .row__n { font-size: 24px; }
+.rows--screen .row__act { display: none; }   /* 채점 버튼은 운영 화면에만 */
+
+/* 관객석에서도 읽히도록 한 단계씩 키운다 */
+.stage .brow__nick { font-size: 24px; }
+.stage .brow__score { font-size: 26px; }
+.stage .tally-sum { gap: 30px; font-size: 16px; }
+.stage .tally-sum b { font-size: 28px; }
+
+/* ------------------ 관객 로비 ------------------
+   위에서부터 타이틀 이미지 → QR → PIN → 입장 인원.
+   타이틀 이미지가 남는 높이를 전부 가져가므로 화면의 절반 이상을 차지한다. */
+
+#s-lobby.scene { padding: 22px 40px 28px; }
+
+.lobby-center {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(14px, 2.4vh, 30px);
+  text-align: center;
+}
+
+.title-hero {
+  flex: 1 1 auto; min-height: 48vh;
+  width: min(100%, 1500px);
+  background: center / contain no-repeat;
+  border: 2px dashed var(--line); border-radius: var(--r-lg);
+  display: grid; place-items: center;
+  color: var(--dim); font-size: 15px; letter-spacing: .18em;
+}
+.title-hero.filled { border: none; }
+.title-hero.filled span { display: none; }
+
+.join-hero {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(10px, 1.4vh, 16px);
+}
+
+/* QR — 아래쪽 절반의 주인공 */
+.qr-hero {
+  background: #fff; border-radius: 20px; padding: clamp(8px, 1.1vh, 14px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+  display: none;
+}
+.qr-hero.on { display: block; }
+.qr-hero img {
+  display: block; aspect-ratio: 1;
+  height: clamp(180px, 28vh, 420px); width: auto;
+}
+
+/* PIN — 참고용이므로 작게 */
+.pin-mini { display: flex; align-items: center; gap: 14px; }
+.pin-mini__label {
+  font-size: 13px; font-weight: 800; letter-spacing: .18em; color: var(--dim);
+}
+.pin-tiles--sm { gap: 6px; }
+.pin-tiles--sm span {
+  width: 46px; height: 60px; border-radius: 10px; font-size: 34px;
+}
+
+.lobby-joined { margin: 0; font-size: 15px; color: var(--muted); }
+.lobby-joined b {
+  font-family: var(--font-num); font-size: 26px; font-weight: 700;
+  color: var(--sig-4); margin-right: 4px;
+}
+
+/* 대기 안내 */
+.waiting {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; flex: 1; text-align: center; color: var(--muted);
+}
+
+/* 영상 --------------------------------------------------------- */
+.vstage {
+  position: fixed; inset: 0; z-index: 50;
+  display: grid; place-items: center; background: #000;
+}
+.vstage video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.vstage__tap {
+  position: absolute; padding: 18px 28px; border-radius: 999px;
+  background: var(--stage-3); border: 1px solid var(--line); color: var(--chalk);
+  font: inherit; font-size: 20px; font-weight: 700; cursor: pointer;
+}

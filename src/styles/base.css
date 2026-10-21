@@ -1,0 +1,205 @@
+/* ============================================================
+   QuizLive — 공통 토큰
+   컨셉: 어두운 무대 위 전광판. 신호등 4색이 보기 버튼을 구분한다.
+   ============================================================ */
+
+:root {
+  /* 무대 */
+  --ink:      #080C1A;
+  --stage:    #101733;
+  --stage-2:  #18213F;
+  --stage-3:  #212C50;
+  --line:     #2B3763;
+  --chalk:    #EDF1FF;
+  --muted:    #8B96BF;
+  --dim:      #5D6892;
+
+  /* 신호 (보기 색) */
+  --sig-1: #FF4D6D;
+  --sig-2: #3D9BFF;
+  --sig-3: #FFC13D;
+  --sig-4: #2BD9A6;
+  --sig-5: #B07CFF;
+  --sig-6: #FF8A3D;
+
+  --live: #FF3B30;
+  --ok:   #2BD9A6;
+  --no:   #FF4D6D;
+
+  --accent:   #3D9BFF;
+  --accent-2: #2B6EF5;
+  --accent-ink: #05122B;
+  --glow-a: rgba(61, 155, 255, .16);
+  --glow-b: rgba(176, 124, 255, .10);
+  --ink-rgb: 8, 12, 26;
+  --bg-dim: .22;
+
+  /* 타이포 */
+  --font-ui: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+             'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --font-num: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --shadow: 0 18px 48px rgba(0, 0, 0, .45);
+}
+
+* { box-sizing: border-box; }
+
+/* hidden 속성은 항상 이긴다.
+   .answers·.ox·.short-wrap 처럼 display 를 지정한 클래스가 붙어 있으면
+   브라우저 기본 규칙([hidden]{display:none})이 밀려서 요소가 그대로 보인다.
+   답안 입력창이 유형별로 하나만 뜨도록 보장하는 규칙이므로 지우지 말 것. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--ink);
+  color: var(--chalk);
+  font-family: var(--font-ui);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 700px at 50% -12%, var(--glow-a), transparent 60%),
+    radial-gradient(900px 600px at 100% 110%, var(--glow-b), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* 배경 이미지 레이어 (운영자가 지정) --------------------------- */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  opacity: var(--bg-dim);
+  filter: saturate(.75);
+  pointer-events: none;
+}
+.bg-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(var(--ink-rgb), .55), rgba(var(--ink-rgb), .9));
+}
+
+/* 타이포 유틸 -------------------------------------------------- */
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--dim);
+}
+h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+
+/* 버튼 ---------------------------------------------------------- */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--stage-2);
+  color: var(--chalk);
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: transform .12s ease, background .16s ease, border-color .16s ease;
+}
+.btn:hover:not(:disabled) { background: var(--stage-3); border-color: #3A4880; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fff;
+}
+.btn--primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent), var(--accent)); }
+.btn--danger { background: rgba(255, 77, 109, .14); border-color: rgba(255, 77, 109, .45); color: #FF8DA3; }
+.btn--ghost { background: transparent; }
+.btn--lg { padding: 16px 28px; font-size: 17px; border-radius: var(--r-lg); }
+.btn--sm { padding: 7px 12px; font-size: 13px; border-radius: var(--r-sm); }
+.btn--block { display: block; width: 100%; }
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 입력 ---------------------------------------------------------- */
+.field { display: block; margin-bottom: 14px; }
+.field > span {
+  display: block; margin-bottom: 6px;
+  font-size: 13px; font-weight: 700; color: var(--muted);
+}
+.input, .select, .textarea {
+  width: 100%;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  color: var(--chalk);
+  font: inherit;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+}
+.input:focus, .select:focus, .textarea:focus { border-color: var(--accent); outline: none; }
+.textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
+.input::placeholder, .textarea::placeholder { color: var(--dim); }
+
+/* 카드 ---------------------------------------------------------- */
+.card {
+  background: linear-gradient(180deg, var(--stage-2), var(--stage));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+
+/* 보기 색 (참여자·진행·관객 화면 공용) -------------------------- */
+.sig-1 { background: var(--sig-1); color: var(--sig-1-ink, #0B1020); }
+.sig-2 { background: var(--sig-2); color: var(--sig-2-ink, #0B1020); }
+.sig-3 { background: var(--sig-3); color: var(--sig-3-ink, #0B1020); }
+.sig-4 { background: var(--sig-4); color: var(--sig-4-ink, #0B1020); }
+.sig-5 { background: var(--sig-5); color: var(--sig-5-ink, #0B1020); }
+.sig-6 { background: var(--sig-6); color: var(--sig-6-ink, #0B1020); }
+
+/* 배지 ---------------------------------------------------------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: .04em;
+  background: var(--stage-3); color: var(--muted);
+}
+.badge--live { background: rgba(255, 59, 48, .16); color: #FF7B73; }
+.badge--live::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--live); animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* 토스트 -------------------------------------------------------- */
+#toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+  background: var(--stage-3); border: 1px solid var(--line);
+  padding: 12px 20px; border-radius: 999px;
+  font-size: 14px; font-weight: 600;
+  opacity: 0; pointer-events: none; transition: all .22s ease; z-index: 999;
+  box-shadow: var(--shadow); max-width: 90vw; text-align: center;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { border-color: rgba(255, 77, 109, .5); color: #FF9DAF; }
+
+/* 스크롤바 ------------------------------------------------------ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--stage-3); border-radius: 99px; border: 2px solid var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
