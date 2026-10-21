@@ -508,7 +508,7 @@ function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage }
             <div style={LABEL_STYLE}>정답</div>
             <div className="oxpick">
               {['O', 'X'].map(v => (
-                <button key={v} className={q.options.find(o => o.text === v)?.correct ? 'on' : ''}
+                <button key={v} data-v={v} className={q.options.find(o => o.text === v)?.correct ? 'on' : ''}
                   onClick={() => mutate(x => { x.options.forEach(o => { o.correct = o.text === v; }); })}>{v}</button>
               ))}
             </div>
