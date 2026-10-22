@@ -44,7 +44,7 @@ export default function LoginPage() {
           <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)}
             autoComplete="current-password" autoFocus />
         </label>
-        {error && <p style={{ color: '#FF8DA3', fontSize: 14, margin: '0 0 12px' }}>{error}</p>}
+        {error && <p style={{ color: 'var(--no)', fontSize: 14, margin: '0 0 12px' }}>{error}</p>}
         <button className="btn btn--primary btn--block" disabled={busy}>로그인</button>
       </form>
     </div>

@@ -90,7 +90,7 @@ export default function AdminPage() {
     if (dirty && !confirm('저장하지 않은 변경사항이 있습니다. 그래도 새로 만들까요?')) return;
     try {
       const created = await api<Quiz>('/api/quizzes', {
-        method: 'POST', body: JSON.stringify({ title: '새 퀴즈', questions: [blankQ('mc')] }),
+        method: 'POST', body: JSON.stringify({ title: '새 퀴즈', theme: DEFAULT_THEME, questions: [blankQ('mc')] }),
       });
       setCur(created);
       setDirty(false);

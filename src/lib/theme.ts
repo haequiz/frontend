@@ -5,17 +5,19 @@
    ============================================================ */
 import type { Theme } from './types';
 
+/** 기본: 아이보리 바탕 · 올리브 글자 · 연두 강조 · 노랑 (밝은 유리 화면) */
 export const DEFAULT_THEME: Theme = {
-  preset: 'midnight',
-  ink: '#080C1A',
-  stage: '#101733',
-  chalk: '#EDF1FF',
-  accent: '#3D9BFF',
-  sig: ['#FF4D6D', '#3D9BFF', '#FFC13D', '#2BD9A6', '#B07CFF', '#FF8A3D'],
-  bgDim: 0.22,
+  preset: 'lemon',
+  ink: '#FBF8EC',
+  stage: '#FFFFFF',
+  chalk: '#262A12',
+  accent: '#9BC53D',
+  sig: ['#E8574F', '#2F8AC9', '#FFC93C', '#9BC53D', '#9373D6', '#F59A3C'],
+  bgDim: 0.18,
 };
 
 export const PRESETS: Record<string, Omit<Theme, 'preset'> & { label: string }> = {
+  lemon: { label: '레몬라임', ink: '#FBF8EC', stage: '#FFFFFF', chalk: '#262A12', accent: '#9BC53D', sig: ['#E8574F', '#2F8AC9', '#FFC93C', '#9BC53D', '#9373D6', '#F59A3C'], bgDim: 0.18 },
   midnight: { label: '미드나이트', ink: '#080C1A', stage: '#101733', chalk: '#EDF1FF', accent: '#3D9BFF', sig: ['#FF4D6D', '#3D9BFF', '#FFC13D', '#2BD9A6', '#B07CFF', '#FF8A3D'], bgDim: 0.22 },
   charcoal: { label: '차콜', ink: '#0D0D0F', stage: '#1A1A1E', chalk: '#F2F2F5', accent: '#8B8BF5', sig: ['#F2555A', '#4D9DE0', '#F5B841', '#3DBE8B', '#A97FF0', '#F08A3C'], bgDim: 0.25 },
   forest: { label: '포레스트', ink: '#06120E', stage: '#0F2019', chalk: '#EAF5EE', accent: '#3FBF7F', sig: ['#E8615C', '#3D9BC9', '#EFC04F', '#3FBF7F', '#9B7FD4', '#EB8A4A'], bgDim: 0.22 },
@@ -57,8 +59,8 @@ function luminance(hex: string) {
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 
-/** 그 색 위에 얹을 글자색 — 밝으면 검정, 어두우면 흰색 */
-const readableInk = (hex: string) => (luminance(hex) > 0.42 ? '#0B1020' : '#FFFFFF');
+/** 그 색 위에 얹을 글자색 — 밝으면 짙은 올리브, 어두우면 흰색 */
+const readableInk = (hex: string) => (luminance(hex) > 0.42 ? '#23260F' : '#FFFFFF');
 
 export function normalize(theme?: Partial<Theme> | null): Theme {
   const base = { ...DEFAULT_THEME, ...(theme || {}) };
@@ -78,8 +80,12 @@ export function normalize(theme?: Partial<Theme> | null): Theme {
 /** 테마를 실제 CSS 변수로 적용한다. root 를 주면 미리보기 영역에만 적용된다 */
 export function applyTheme(theme?: Partial<Theme> | null, root?: HTMLElement | null): Theme {
   const t = normalize(theme);
-  const s = (root || document.documentElement).style;
+  const el = root || document.documentElement;
+  const s = el.style;
   const { r, g, b } = toRgb(t.ink);
+  // 밝은 바탕이면 유리 · 그림자 · 글자용 색을 밝은 쪽으로 (base.css 의 [data-tone])
+  const light = luminance(t.ink) > 0.5;
+  el.dataset.tone = light ? 'light' : 'dark';
   s.setProperty('--ink', t.ink);
   s.setProperty('--ink-rgb', `${r}, ${g}, ${b}`);
   s.setProperty('--stage', t.stage);
@@ -87,13 +93,14 @@ export function applyTheme(theme?: Partial<Theme> | null, root?: HTMLElement | n
   s.setProperty('--stage-3', mix(t.stage, t.chalk, 0.14));
   s.setProperty('--line', mix(t.stage, t.chalk, 0.2));
   s.setProperty('--chalk', t.chalk);
-  s.setProperty('--muted', mix(t.chalk, t.stage, 0.42));
-  s.setProperty('--dim', mix(t.chalk, t.stage, 0.62));
+  // 밝은 바탕의 흐린 글자는 더 진하게 (가독성)
+  s.setProperty('--muted', mix(t.chalk, t.stage, light ? 0.32 : 0.42));
+  s.setProperty('--dim', mix(t.chalk, t.stage, light ? 0.48 : 0.62));
   s.setProperty('--accent', t.accent);
   s.setProperty('--accent-2', mix(t.accent, t.ink, 0.28));
   s.setProperty('--accent-ink', readableInk(t.accent));
-  s.setProperty('--glow-a', rgba(t.accent, 0.16));
-  s.setProperty('--glow-b', rgba(t.sig[4], 0.1));
+  s.setProperty('--glow-a', rgba(t.accent, light ? 0.3 : 0.16));
+  s.setProperty('--glow-b', rgba(t.sig[2], light ? 0.34 : 0.1));
   s.setProperty('--bg-dim', String(t.bgDim));
   t.sig.forEach((c, i) => {
     s.setProperty(`--sig-${i + 1}`, c);

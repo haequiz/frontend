@@ -227,7 +227,7 @@ export default function HostPage() {
           <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="badge">PIN {room?.pin ?? '—'}</span>
             {room && phase !== 'end' && <span className="badge badge--live">LIVE</span>}
-            {!online && <span className="badge" style={{ color: '#FF8DA3' }}>재연결 중</span>}
+            {!online && <span className="badge" style={{ color: 'var(--no)' }}>재연결 중</span>}
           </div>
         </div>
 
