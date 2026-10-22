@@ -318,14 +318,17 @@ export default function ScreenPage() {
           )}
 
           {scene === 'end' && ended && (
-            <section className="scene scene-scroll on">
-              <h1 style={{ textAlign: 'center', fontSize: 38, marginBottom: 28 }}>퀴즈 종료</h1>
-              <p className="final-note">
-                {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-              </p>
-              <Podium podium={ended.podium} />
-              <div className="board">
-                {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
+            <section className="scene on" id="s-end">
+              <div className="final-head">
+                <h1>퀴즈 종료</h1>
+                <p className="final-note">
+                  {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
+                </p>
+              </div>
+              {/* 빔 화면은 스크롤할 수 없으므로 시상대와 상위 10명을 한 화면에. 공동 순위로 10명을 넘으면 2열 */}
+              <div className="final-body">
+                <Podium podium={ended.podium} />
+                <FinalBoard ended={ended} />
               </div>
             </section>
           )}
@@ -358,6 +361,18 @@ export default function ScreenPage() {
         )}
       </div>
     </>
+  );
+}
+
+/** 최종 순위표: 줄 높이를 화면에 나눠 담는다 (10줄 기준, 넘치면 2열) */
+function FinalBoard({ ended }: { ended: Ended }) {
+  const n = ended.scoreboard.length;
+  const twoCol = n > 10;
+  const rows = twoCol ? Math.ceil(n / 2) : 10;
+  return (
+    <div className={`board ${twoCol ? 'two-col' : ''}`} style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+      {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
+    </div>
   );
 }
 
