@@ -11,23 +11,3 @@ export function Row({ r, gain }: { r: BoardRow; gain?: string }) {
     </div>
   );
 }
-
-/** 시상대 — 2등 · 1등 · 3등 순서로 세운다 */
-export function Podium({ podium }: { podium: BoardRow[] }) {
-  const medals = ['🥇', '🥈', '🥉'];
-  return (
-    <div className="podium">
-      {[1, 0, 2].filter(i => podium[i]).map(i => {
-        const p = podium[i];
-        return (
-          <div key={i} className={`pod pod--${p.rank}`}>
-            <div className="pod__medal">{medals[p.rank - 1] || '🎖️'}</div>
-            <div className="pod__nick">{p.tied && <em className="pod__tie">공동</em>}{p.displayName}</div>
-            <div className="pod__score">{p.score}점</div>
-            <div className="pod__block">{p.rank}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}

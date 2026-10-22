@@ -8,7 +8,7 @@ import { applyTheme } from '../../lib/theme';
 import { joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast, toggleFullscreen } from '../../lib/ui';
 import type { BoardRow, Ended, Playing, Progress, QuestionView, QuizMeta, Reveal, Tally } from '../../lib/types';
-import { Podium, Row } from '../../components/Board';
+import { Row } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 
 /* ============================================================
@@ -325,11 +325,8 @@ export default function ScreenPage() {
                   {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
                 </p>
               </div>
-              {/* 빔 화면은 스크롤할 수 없으므로 시상대와 상위 10명을 한 화면에. 공동 순위로 10명을 넘으면 2열 */}
-              <div className="final-body">
-                <Podium podium={ended.podium} />
-                <FinalBoard ended={ended} />
-              </div>
+              {/* 빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게. 공동 순위로 10명을 넘으면 2열 */}
+              <FinalBoard ended={ended} />
             </section>
           )}
 
@@ -370,7 +367,7 @@ function FinalBoard({ ended }: { ended: Ended }) {
   const twoCol = n > 10;
   const rows = twoCol ? Math.ceil(n / 2) : 10;
   return (
-    <div className={`board ${twoCol ? 'two-col' : ''}`} style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+    <div className={`board board--final ${twoCol ? 'two-col' : ''}`} style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
       {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
     </div>
   );

@@ -7,7 +7,7 @@ import { api, downloadResults } from '../../lib/api';
 import { applyTheme } from '../../lib/theme';
 import { joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast } from '../../lib/ui';
-import { Podium, Row } from '../../components/Board';
+import { Row } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 import type {
   BoardRow, Ended, PlayerList, PlayerRow, Playing, Progress, QuestionView, Quiz, QuizSummary, Reveal, Tally,
@@ -458,16 +458,17 @@ export default function HostPage() {
         )}
 
         {phase === 'end' && ended && room && (
-          <section className="scene scene-scroll on">
-            <h1 style={{ textAlign: 'center', fontSize: 34, marginBottom: 26 }}>퀴즈 종료</h1>
-            <p className="final-note">
-              {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-            </p>
-            <Podium podium={ended.podium} />
-            <div className="board">
+          <section className="scene on">
+            <div className="final-head">
+              <h1>퀴즈 종료</h1>
+              <p className="final-note">
+                {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
+              </p>
+            </div>
+            <div className="board board--final">
               {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
             </div>
-            <div style={{ textAlign: 'center', marginTop: 24, display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <div className="final-actions">
               <button className="btn" onClick={() => downloadResults(room.pin).catch(e => toast(e.message, true))}>결과 CSV 내려받기</button>
               <button className="btn btn--ghost" onClick={() => { sessionStorage.removeItem(STORE); window.location.reload(); }}>새 퀴즈 진행</button>
             </div>

@@ -318,10 +318,6 @@ html, body { height: 100%; overflow: hidden; }
   font-family: var(--font-ui); font-style: normal;
   font-size: 11px; font-weight: 800; color: var(--dim); letter-spacing: .04em;
 }
-.pod__tie {
-  display: block; font-style: normal;
-  font-size: 12px; font-weight: 800; color: var(--dim); letter-spacing: .06em;
-}
 .brow:nth-child(1) .brow__rank { color: #FFD24A; }
 .brow:nth-child(2) .brow__rank { color: #D3DCF5; }
 .brow:nth-child(3) .brow__rank { color: #E0A15C; }
@@ -329,22 +325,20 @@ html, body { height: 100%; overflow: hidden; }
 .brow__gain { font-family: var(--font-num); font-size: 15px; color: var(--ok); }
 .brow__score { font-family: var(--font-num); font-size: 22px; font-weight: 700; }
 
-/* --- 시상대 --- */
-.podium { display: flex; align-items: flex-end; justify-content: center; gap: 22px; margin-bottom: 34px; }
-.pod { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.pod__medal { font-size: 46px; }
-.pod__nick { font-size: 22px; font-weight: 900; }
-.pod__score { font-family: var(--font-num); font-size: 17px; color: var(--muted); }
-.pod__block {
-  width: 168px; border-radius: 14px 14px 0 0;
-  background: linear-gradient(180deg, var(--stage-3), var(--stage));
-  border: 1px solid var(--line); border-bottom: none;
-  display: grid; place-items: center;
-  font-family: var(--font-num); font-size: 42px; font-weight: 700; color: var(--dim);
-}
-.pod--1 .pod__block { height: 200px; border-color: rgba(255,210,74,.5); }
-.pod--2 .pod__block { height: 150px; }
-.pod--3 .pod__block { height: 116px; }
+/* --- 최종 결과: 시상대 없이 순위표를 크게 (진행 · 관객 화면 공용) ---
+   글자 · 여백을 화면 높이(vh)에 맞춰 키운다. .stage 를 붙여 관객 화면의 .stage .brow__* 보다 우선 */
+.final-head { text-align: center; margin-bottom: 2.4vh; }
+.final-head h1 { margin: 0 0 6px; font-size: clamp(28px, 4.4vh, 52px); }
+.final-head .final-note { margin: 0; }
+.stage .board--final { min-height: 0; max-width: 1400px; gap: 1.2vh; padding: 0 4px; }
+.stage .board--final .brow { padding: 1.8vh 2.4vw; gap: 1.6vw; grid-template-columns: 4.6em minmax(0, 1fr) auto auto; }
+.stage .board--final .brow__rank,
+.stage .board--final .brow__nick { font-size: clamp(22px, 3.4vh, 42px); }
+.stage .board--final .brow__rank em { font-size: clamp(12px, 1.6vh, 18px); }
+.stage .board--final .brow__nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stage .board--final .brow__gain { font-size: clamp(14px, 2.1vh, 26px); }
+.stage .board--final .brow__score { font-size: clamp(24px, 3.8vh, 46px); }
+.final-actions { display: flex; gap: 10px; justify-content: center; margin-top: 2vh; }
 
 .scene-scroll { overflow-y: auto; }
 

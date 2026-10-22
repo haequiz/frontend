@@ -123,33 +123,13 @@
 .stage .tally-sum b { font-size: 28px; }
 
 /* ------------------ 최종 결과 ------------------
-   빔 화면은 스크롤할 수 없으므로 시상대(왼쪽)와 상위 10명(오른쪽)을 한 화면에.
-   글자 · 줄 높이를 화면 높이(vh)에 맞춰 어떤 해상도에서도 10줄이 다 보이게 한다. */
-#s-end { gap: 2.4vh; }
-.final-head { text-align: center; }
-.final-head h1 { margin: 0 0 6px; font-size: clamp(28px, 4.4vh, 52px); }
-#s-end .final-note { margin: 0; }
-.final-body {
-  flex: 1; min-height: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  align-items: center; gap: 3vw;
-}
-#s-end .podium { margin: 0; gap: 1.2vw; }
-#s-end .pod { min-width: 0; }
-#s-end .pod__nick { max-width: 13vw; text-align: center; overflow-wrap: anywhere; font-size: clamp(15px, 2.4vh, 28px); }
-#s-end .pod__block { width: min(10vw, 168px); }
-#s-end .pod--1 .pod__block { height: 22vh; }
-#s-end .pod--2 .pod__block { height: 16vh; }
-#s-end .pod--3 .pod__block { height: 12vh; }
-#s-end .board { height: 100%; max-width: none; margin: 0; overflow: hidden; gap: 1vh; align-content: stretch; }
-#s-end .board.two-col { grid-template-columns: 1fr 1fr; grid-auto-flow: column; column-gap: 1.2vw; }
+   빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게 (공통 모양은 host.css 의 .board--final).
+   줄 높이를 남은 화면 높이에 10등분으로 나눠 담아 어떤 해상도에서도 10줄이 다 보이게 한다. */
+#s-end .board--final { overflow: hidden; align-content: stretch; }
+#s-end .board--final .brow { min-height: 0; padding-top: 0; padding-bottom: 0; }
+#s-end .board.two-col { grid-template-columns: 1fr 1fr; grid-auto-flow: column; column-gap: 1.6vw; }
 #s-end .board.two-col .brow__gain { display: none; }   /* 2열이면 이름 자리가 좁아 정답 수는 빼고 */
 #s-end .board.two-col .brow__nick { white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }   /* 긴 이름은 두 줄로 */
-#s-end .brow { min-height: 0; padding: 0 1.4vw; gap: 1vw; grid-template-columns: 3.2em minmax(0, 1fr) auto auto; }
-#s-end .brow__rank { font-size: clamp(16px, 2.6vh, 30px); }
-#s-end .brow__nick { font-size: clamp(16px, 2.6vh, 30px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#s-end .brow__gain { font-size: clamp(12px, 1.8vh, 20px); }
-#s-end .brow__score { font-size: clamp(18px, 2.9vh, 34px); }
 
 /* ------------------ 관객 로비 ------------------
    위에서부터 타이틀 이미지 → QR → PIN → 입장 인원.
