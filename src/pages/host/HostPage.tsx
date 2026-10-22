@@ -365,7 +365,7 @@ export default function HostPage() {
               </div>
               <div className="lobby__right">
                 <div className="lobby__count"><b>{players.length}</b> 명 입장 · 최대 {room.maxPlayers}명</div>
-                <div className="namewall">{players.slice(-120).map(p => <span key={p.id}>{p.displayName}</span>)}</div>
+                <div className="namewall">{players.map(p => <span key={p.id}>{p.displayName}</span>)}</div>
               </div>
             </div>
           </section>
