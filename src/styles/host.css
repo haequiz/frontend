@@ -80,7 +80,7 @@ html, body { height: 100%; overflow: hidden; }
 .pchip {
   display: inline-flex; align-items: center; gap: 5px;
   background: var(--glass-strong); border: 1px solid var(--glass-edge);
-  border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 600;
+  border-radius: 6px; padding: 4px 9px; font-size: 12px; font-weight: 600;
 }
 .pchip button {
   background: none; border: none; color: var(--dim);
@@ -191,9 +191,9 @@ html, body { height: 100%; overflow: hidden; }
   display: flex; flex-wrap: wrap; gap: 8px;
 }
 .namewall span {
-  padding: 8px 15px; border-radius: 999px;
+  padding: 8px 15px; border-radius: 8px;
   background: var(--glass-strong); border: 1px solid var(--glass-edge);
-  box-shadow: 0 1px 3px rgba(var(--shade), .08), inset 0 1px 0 var(--glass-hi);
+  box-shadow: 1px 2px 4px rgba(var(--shade), .10), inset 0 1px 0 var(--glass-hi);
   font-size: 15px; font-weight: 700;
   animation: pop .3s cubic-bezier(.2, 1.5, .5, 1);
 }
@@ -240,7 +240,7 @@ html, body { height: 100%; overflow: hidden; }
   font-size: clamp(17px, 1.7vw, 25px); font-weight: 800;
   min-height: 78px;
   background-image: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 55%);
-  box-shadow: 0 8px 20px rgba(var(--shade), .14), inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -3px 0 rgba(0, 0, 0, .08);
+  box-shadow: 6px 8px 20px rgba(var(--shade), .14), inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -3px 0 rgba(0, 0, 0, .08);
 }
 .opt-lg .glyph { font-size: 26px; opacity: .75; flex: none; }
 .opt-lg img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; flex: none; }
@@ -292,7 +292,7 @@ html, body { height: 100%; overflow: hidden; }
   animation: grow .55s cubic-bezier(.16, 1, .3, 1) both;
   transform-origin: bottom center;
   background-image: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 45%);
-  box-shadow: 0 8px 20px rgba(var(--shade), .14), inset 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: 6px 8px 20px rgba(var(--shade), .14), inset 0 1px 0 rgba(255, 255, 255, .45);
 }
 .bar__count {
   font-family: var(--font-num); font-size: 30px; font-weight: 700;

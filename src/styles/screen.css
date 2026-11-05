@@ -12,7 +12,7 @@
   letter-spacing: .3em; text-indent: .3em;
   padding: 18px 10px; border-radius: var(--r-md);
   background: var(--glass-strong); border: 2px solid var(--line); color: var(--chalk);
-  box-shadow: inset 0 1px 3px rgba(var(--shade), .08);
+  box-shadow: var(--shadow-sm), inset 0 1px 3px rgba(var(--shade), .08);
 }
 .pin-big:focus { border-color: var(--sig-2); outline: none; }
 
@@ -206,7 +206,7 @@
 }
 .vstage video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .vstage__tap {
-  position: absolute; padding: 18px 28px; border-radius: 999px;
+  position: absolute; padding: 18px 28px; border-radius: var(--r-md);
   background: var(--stage-3); border: 1px solid var(--line); color: var(--chalk);
   font: inherit; font-size: 20px; font-weight: 700; cursor: pointer;
 }
