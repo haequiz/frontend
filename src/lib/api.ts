@@ -46,9 +46,9 @@ export function upload(kind: 'image' | 'video', file: File, onProgress?: (pct: n
 }
 
 /** 음성 실습 대본 음성. 받는 대로 재생하도록 응답 스트림을 그대로 돌려준다 */
-export async function voiceSpeech(signal: AbortSignal) {
+export async function voiceSpeech(script: number, signal: AbortSignal) {
   const op = getOperator();
-  const res = await fetch(`${API_URL}/api/voice/speech`, {
+  const res = await fetch(`${API_URL}/api/voice/speech?script=${script}`, {
     method: 'POST',
     headers: op ? { Authorization: `Bearer ${op.token}` } : {},
     signal,

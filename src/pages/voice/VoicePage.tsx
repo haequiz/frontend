@@ -7,11 +7,12 @@ import { toast } from '../../lib/ui';
 
 /* ============================================================
    음성 실습 (보이스피싱 예방 교육)
-   동의한 성인의 목소리를 복제해 서버에 정해 둔 대본을 읽는다.
+   동의한 사람의 목소리를 복제해 서버에 정해 둔 대본 중 고른 것을 읽는다.
    API 키와 대본은 백엔드에 있고, 복제한 목소리는 끝내면 지운다.
    ============================================================ */
 
 type Step = 'ready' | 'countdown' | 'recording' | 'cloning' | 'script' | 'speaking';
+type Script = { label: string; text: string };
 
 const RECORD_SECONDS = 12;
 const READ_ALOUD = '안녕하세요. 저는 지금 제 목소리를 녹음하고 있습니다. 오늘은 보이스피싱을 알아차리는 방법을 함께 배워 보겠습니다. 목소리가 비슷해도 꼭 다시 확인해야 합니다.';
@@ -63,7 +64,8 @@ export default function VoicePage() {
   const [step, setStep] = useState<Step>('ready');
   const [count, setCount] = useState(0);
   const [consent, setConsent] = useState(false);
-  const [script, setScript] = useState('');
+  const [scripts, setScripts] = useState<Script[]>([]);
+  const [chosen, setChosen] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const speechRef = useRef<AbortController | null>(null);
 
@@ -116,8 +118,9 @@ export default function VoicePage() {
       setStep('cloning');
       const form = new FormData();
       form.append('file', sample, 'sample.wav');
-      const res = await api<{ script: string }>('/api/voice', { method: 'POST', body: form });
-      setScript(res.script);
+      const res = await api<{ scripts: Script[] }>('/api/voice', { method: 'POST', body: form });
+      setScripts(res.scripts);
+      setChosen(0);
       setStep('script');
     } catch (e) {
       toast(errorText(e), true);
@@ -139,7 +142,7 @@ export default function VoicePage() {
     const controller = new AbortController();
     speechRef.current = controller;
     try {
-      await playStream(audioRef.current!, await voiceSpeech(controller.signal));
+      await playStream(audioRef.current!, await voiceSpeech(chosen, controller.signal));
     } catch (e) {
       if (controller.signal.aborted) return;   // 진행자가 멈춘 경우
       stopSpeech();
@@ -157,7 +160,7 @@ export default function VoicePage() {
     } catch {
       toast('지금 삭제하지 못했습니다. 30분 안에 자동으로 삭제됩니다.', true);
     }
-    setScript('');
+    setScripts([]);
     backToReady();
   }
 
@@ -171,7 +174,7 @@ export default function VoicePage() {
           <h1 className="voice__title">AI 목소리 복제 체험</h1>
           <label className="voice__consent">
             <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
-            녹음하는 사람은 성인이며, 오늘 목소리 복제에 직접 동의했습니다.
+            목소리 복제에 동의를 받았습니다.
           </label>
           <button className="btn btn--primary btn--lg" disabled={!consent} onClick={record}>녹음 시작</button>
           <p className="voice__note">복제한 목소리는 실습을 끝내면 삭제되고, 끝내지 않아도 30분 뒤 자동으로 삭제됩니다.</p>
@@ -198,7 +201,12 @@ export default function VoicePage() {
       {(step === 'script' || step === 'speaking') && (
         <>
           <span className="voice__fake">AI로 만든 가짜 음성</span>
-          <p className="voice__read">{script}</p>
+          <div className="voice__actions">
+            {scripts.map((s, i) => (
+              <button key={s.label} className={`btn ${i === chosen ? 'btn--primary' : ''}`} disabled={step === 'speaking'} onClick={() => setChosen(i)}>{s.label}</button>
+            ))}
+          </div>
+          <p className="voice__read">{scripts[chosen].text}</p>
           <div className="voice__actions">
             {step === 'speaking' ? (
               <button className="btn btn--lg" onClick={() => { stopSpeech(); setStep('script'); }}>멈추기</button>
