@@ -21,6 +21,7 @@ type Scene = 'connect' | 'lobby' | 'question' | 'tally' | 'board' | 'end' | 'bye
 interface JoinReply {
   pin: string;
   quiz: QuizMeta;
+  offline: boolean;   // 화이트보드 진행: 입장 안내 · 인원수 · 제출 현황 · 집계 · 순위를 띄우지 않는다
   state: string;
   count: number;
   video: Playing | null;
@@ -34,6 +35,7 @@ interface JoinReply {
 const LABEL: Record<Scene, string> = {
   connect: '연결 대기', lobby: '입장 대기', question: '답안 접수 중', tally: '정답 공개', board: '순위', end: '최종 결과', bye: '연결 종료',
 };
+const OFFLINE_LABEL: Record<Scene, string> = { ...LABEL, lobby: '대기', question: '문제', end: '종료' };
 
 export default function ScreenPage() {
   const op = getOperator();
@@ -43,6 +45,7 @@ export default function ScreenPage() {
   const [pinInput, setPinInput] = useState('');
   const [pin, setPin] = useState('');
   const [quiz, setQuiz] = useState<QuizMeta | null>(null);
+  const [offline, setOffline] = useState(false);
   const [scene, setScene] = useState<Scene>('connect');
   const [count, setCount] = useState(0);
   const [question, setQuestion] = useState<QuestionView | null>(null);
@@ -71,6 +74,7 @@ export default function ScreenPage() {
       setPin(r.pin);
       rt.subscribe(`/topic/room.${r.pin}.screen`);
       setQuiz(r.quiz);
+      setOffline(r.offline);
       applyTheme(r.quiz.theme);
       setCount(r.count);
       qrDataUrl(joinUrl(r.pin), 800).then(setQr).catch(() => setQr(''));
@@ -208,10 +212,10 @@ export default function ScreenPage() {
         <main className="stage">
           <div className="stage__bg" style={quiz?.backgroundImage ? { backgroundImage: `url("${mediaUrl(quiz.backgroundImage)}")` } : undefined} />
           <div className="stage__top">
-            <span className="eyebrow">{LABEL[scene]}</span>
+            <span className="eyebrow">{(offline ? OFFLINE_LABEL : LABEL)[scene]}</span>
             <div className="right">
-              {pin && <span className="badge">PIN {pin}</span>}
-              {pin && <span className="badge">{count}명 입장</span>}
+              {pin && !offline && <span className="badge">PIN {pin}</span>}
+              {pin && !offline && <span className="badge">{count}명 입장</span>}
               {videoBadge && <span className="badge">{videoBadge}</span>}
             </div>
           </div>
@@ -237,33 +241,39 @@ export default function ScreenPage() {
           {scene === 'lobby' && (
             <section className="scene on" id="s-lobby">
               <div className="lobby-center">
-                <div className={`title-hero ${titleImage ? 'filled' : ''}`} style={titleImage ? { backgroundImage: `url("${titleImage}")` } : undefined}>
-                  <span>타이틀 이미지</span>
-                </div>
-                <div className="join-hero">
-                  {qr && <div className="qr-hero on"><img src={qr} alt="입장 QR 코드" /></div>}
-                  <div className="pin-mini">
-                    <span className="pin-mini__label">입장 PIN</span>
-                    <div className="pin-tiles pin-tiles--sm">{[...pin].map((d, i) => <span key={i}>{d}</span>)}</div>
+                {offline && !titleImage ? <h1 className="q-big">{quiz?.title}</h1> : (
+                  <div className={`title-hero ${titleImage ? 'filled' : ''}`} style={titleImage ? { backgroundImage: `url("${titleImage}")` } : undefined}>
+                    <span>타이틀 이미지</span>
                   </div>
-                </div>
+                )}
+                {!offline && (
+                  <div className="join-hero">
+                    {qr && <div className="qr-hero on"><img src={qr} alt="입장 QR 코드" /></div>}
+                    <div className="pin-mini">
+                      <span className="pin-mini__label">입장 PIN</span>
+                      <div className="pin-tiles pin-tiles--sm">{[...pin].map((d, i) => <span key={i}>{d}</span>)}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
 
           {scene === 'question' && question && (
             <section className="scene on" id="s-question">
-              <div className="q-hud">
-                <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
-                  <b className="num">{progress.answered}</b><span>제출 / {progress.total || count}</span>
+              {!offline && (
+                <div className="q-hud">
+                  <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
+                    <b className="num">{progress.answered}</b><span>제출 / {progress.total || count}</span>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="q-center">
                 <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
                 <h1 className="q-big">{question.text}</h1>
                 {question.image && <div className="q-media on"><img src={mediaUrl(question.image)} alt="" /></div>}
               </div>
-              <QuestionOptions q={question} />
+              <QuestionOptions q={question} offline={offline} />
             </section>
           )}
 
@@ -275,12 +285,14 @@ export default function ScreenPage() {
                 <div className="answer-hero__value">{tally.correctLabels.join(' / ') || '—'}</div>
                 {tally.explanation && <p className="answer-hero__why">{tally.explanation}</p>}
               </div>
-              <div className="tally-sum">
-                <span className="ok">정답 <b className="num">{tally.correctCount}</b></span>
-                <span className="no">오답 <b className="num">{tally.wrongCount}</b></span>
-                <span className="na">무응답 <b className="num">{tally.noAnswer}</b></span>
-              </div>
-              {tally.type === 'short' ? (
+              {!offline && (
+                <div className="tally-sum">
+                  <span className="ok">정답 <b className="num">{tally.correctCount}</b></span>
+                  <span className="no">오답 <b className="num">{tally.wrongCount}</b></span>
+                  <span className="na">무응답 <b className="num">{tally.noAnswer}</b></span>
+                </div>
+              )}
+              {!offline && (tally.type === 'short' ? (
                 <div className="rows rows--screen">
                   {tally.buckets.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 22 }}>제출된 답이 없습니다.</p>}
                   {tally.buckets.slice(0, 12).map(b => (
@@ -306,7 +318,7 @@ export default function ScreenPage() {
                     </div>
                   ))}
                 </div>
-              )}
+              ))}
             </section>
           )}
 
@@ -319,14 +331,23 @@ export default function ScreenPage() {
 
           {scene === 'end' && ended && (
             <section className="scene on" id="s-end">
-              <div className="final-head">
-                <h1>퀴즈 종료</h1>
-                <p className="final-note">
-                  {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-                </p>
-              </div>
-              {/* 빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게. 공동 순위로 10명을 넘으면 2열 */}
-              <FinalBoard ended={ended} />
+              {offline ? (
+                <div className="waiting">
+                  <h1 className="q-big" style={{ color: 'var(--chalk)' }}>퀴즈 종료</h1>
+                  <p className="final-note" style={{ margin: 0 }}>{quiz?.title}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="final-head">
+                    <h1>퀴즈 종료</h1>
+                    <p className="final-note">
+                      {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
+                    </p>
+                  </div>
+                  {/* 빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게. 공동 순위로 10명을 넘으면 2열 */}
+                  <FinalBoard ended={ended} />
+                </>
+              )}
             </section>
           )}
 
@@ -348,7 +369,7 @@ export default function ScreenPage() {
           <div className="vq">
             <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
             <h2 className="vq__text">{question.text}</h2>
-            <QuestionOptions q={question} />
+            <QuestionOptions q={question} offline={offline} />
           </div>
         )}
         {needTap && (
@@ -374,8 +395,8 @@ function FinalBoard({ ended }: { ended: Ended }) {
 }
 
 /** 문제 화면과 문제 영상 아래쪽에 함께 쓰는 보기 */
-function QuestionOptions({ q }: { q: QuestionView }) {
-  if (q.type === 'short') return <div className="short-hint">태블릿에 정답을 직접 입력하세요</div>;
+function QuestionOptions({ q, offline }: { q: QuestionView; offline: boolean }) {
+  if (q.type === 'short') return <div className="short-hint">{offline ? '화이트보드에 정답을 적어 주세요' : '태블릿에 정답을 직접 입력하세요'}</div>;
   return (
     <div className={`opts-lg ${q.options.length <= 2 && q.type !== 'ox' ? 'one-col' : ''}`}>
       {q.options.map((o, i) => (

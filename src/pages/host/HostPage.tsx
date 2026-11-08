@@ -23,6 +23,7 @@ interface Room {
   pin: string;
   quiz: Quiz;
   maxPlayers: number;
+  offline: boolean;   // 화이트보드 진행: 입장 · 인원수 · 제출 현황 · 순위 없음
 }
 
 interface ResumeReply extends Room {
@@ -42,6 +43,7 @@ const STORE = 'haequiz.host';
 const PHASE_LABEL: Record<Phase, string> = {
   setup: '준비', lobby: '입장 대기', question: '답안 접수 중', tally: '집계 결과', board: '순위', end: '최종 결과',
 };
+const OFFLINE_LABEL: Record<Phase, string> = { ...PHASE_LABEL, lobby: '대기', question: '문제', tally: '정답 공개', end: '종료' };
 
 export default function HostPage() {
   const op = getOperator();
@@ -64,6 +66,7 @@ export default function HostPage() {
   const [present, setPresent] = useState(false);
   const [online, setOnline] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);       // 방을 만들 때 고른다
 
   const roomRef = useRef<Room | null>(null);
   roomRef.current = room;
@@ -99,7 +102,7 @@ export default function HostPage() {
     if (!quizId) return toast('퀴즈를 선택해 주세요.', true);
     setBusy(true);
     try {
-      const r = await rt.request<Room>('host.create', { quizId });
+      const r = await rt.request<Room>('host.create', { quizId, offline: offlineMode });
       openRoom(r);
       setPlayers([]);
       setQIndex(-1);
@@ -165,7 +168,7 @@ export default function HostPage() {
   const can = {
     start: phase === 'lobby' && !video,   // 오프닝 영상 중에는 다시 누르지 않는다
     endq: phase === 'question',
-    board: phase === 'tally',
+    board: phase === 'tally' && !room?.offline,
     next: phase === 'tally' || phase === 'board',
   };
 
@@ -217,6 +220,7 @@ export default function HostPage() {
 
   const quiz = room?.quiz;
   const online_ = players.filter(p => p.online).length;
+  const offlineRoom = !!room?.offline;
 
   return (
     <div className={`shell ${present ? 'present' : ''}`} id="shell">
@@ -227,15 +231,18 @@ export default function HostPage() {
           <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className="badge">PIN {room?.pin ?? '—'}</span>
             {room && phase !== 'end' && <span className="badge badge--live">LIVE</span>}
+            {offlineRoom && <span className="badge">오프라인</span>}
             {!online && <span className="badge" style={{ color: 'var(--no)' }}>재연결 중</span>}
           </div>
         </div>
 
         <div className="panel__body">
-          <div className="metrics">
-            <div className="metric"><b className="num">{players.length}</b><span>참여자 (접속 {online_})</span></div>
-            <div className="metric alert"><b className="num">{phase === 'question' ? progress.answered : 0}</b><span>제출</span></div>
-          </div>
+          {!offlineRoom && (
+            <div className="metrics">
+              <div className="metric"><b className="num">{players.length}</b><span>참여자 (접속 {online_})</span></div>
+              <div className="metric alert"><b className="num">{phase === 'question' ? progress.answered : 0}</b><span>제출</span></div>
+            </div>
+          )}
 
           <div className="section-label">진행</div>
           <div style={{ display: 'grid', gap: 8 }}>
@@ -243,17 +250,17 @@ export default function HostPage() {
               {quiz?.openingVideo ? '퀴즈 시작 · 오프닝 영상부터' : '퀴즈 시작'}
             </button>
             <button className={`btn ${progress.total > 0 && progress.answered >= progress.total ? 'btn--primary' : ''}`}
-              disabled={!can.endq} onClick={() => send('host.endQuestion')}>답안 마감</button>
-            <button className="btn" disabled={!can.board} onClick={() => send('host.scoreboard')}>순위 보기</button>
+              disabled={!can.endq} onClick={() => send('host.endQuestion')}>{offlineRoom ? '정답 공개' : '답안 마감'}</button>
+            {!offlineRoom && <button className="btn" disabled={!can.board} onClick={() => send('host.scoreboard')}>순위 보기</button>}
             <button className="btn btn--primary" disabled={!can.next} onClick={() => send('host.next')}>
-              {phase === 'tally' && isLast ? '결과 발표' : '다음 문제'}
+              {phase === 'tally' && isLast ? (offlineRoom ? '퀴즈 종료' : '결과 발표') : '다음 문제'}
             </button>
           </div>
 
           {video && (
             <div className="vplaying">
               <span>▶ <b>{video.title || '제목 없는 영상'}</b> 재생 중
-                {video.kind === 'question' && (locked ? ' · 절반이 지나면 답을 받습니다' : ' · 답 받는 중')}
+                {video.kind === 'question' && !offlineRoom && (locked ? ' · 절반이 지나면 답을 받습니다' : ' · 답 받는 중')}
               </span>
               <button className="btn btn--sm btn--block" onClick={() => send('host.video', { videoId: null })}>
                 영상 건너뛰기 ▶▶
@@ -294,15 +301,19 @@ export default function HostPage() {
             </>
           )}
 
-          <div className="section-label">참여자 {players.length > 0 && <span className="num">({players.length})</span>}</div>
-          <div className="plist">
-            {players.slice(0, 300).map(p => (
-              <span key={p.id} className={`pchip ${p.online ? '' : 'off'}`}>
-                {p.displayName}
-                <button title="내보내기" onClick={() => confirm(`${p.displayName} 을(를) 내보낼까요?`) && send('host.kick', { participantId: p.id })}>×</button>
-              </span>
-            ))}
-          </div>
+          {!offlineRoom && (
+            <>
+              <div className="section-label">참여자 {players.length > 0 && <span className="num">({players.length})</span>}</div>
+              <div className="plist">
+                {players.slice(0, 300).map(p => (
+                  <span key={p.id} className={`pchip ${p.online ? '' : 'off'}`}>
+                    {p.displayName}
+                    <button title="내보내기" onClick={() => confirm(`${p.displayName} 을(를) 내보낼까요?`) && send('host.kick', { participantId: p.id })}>×</button>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="panel__foot">
@@ -317,7 +328,7 @@ export default function HostPage() {
       <main className="stage">
         <div className="stage__bg" style={quiz?.backgroundImage ? { backgroundImage: `url("${mediaUrl(quiz.backgroundImage)}")` } : undefined} />
         <div className="stage__top">
-          <span className="eyebrow">{PHASE_LABEL[phase]}</span>
+          <span className="eyebrow">{(offlineRoom ? OFFLINE_LABEL : PHASE_LABEL)[phase]}</span>
           <div className="right">
             <span className="badge">{quiz?.title ?? '퀴즈를 선택하세요'}</span>
             <button className="btn btn--sm btn--ghost" disabled={!room} onClick={togglePresent}>전체화면</button>
@@ -338,6 +349,15 @@ export default function HostPage() {
                     {quizzes?.map(q => <option key={q.id} value={q.id}>{q.title} · {q.questionCount}문항</option>)}
                   </select>
                 </label>
+                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '0 0 14px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={offlineMode} onChange={e => setOfflineMode(e.target.checked)} style={{ marginTop: 4 }} />
+                  <span>
+                    <b>오프라인 모드</b>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--muted)' }}>
+                      참가자는 화이트보드로 답합니다. 입장, 인원수, 제출 현황, 순위를 표시하지 않습니다.
+                    </span>
+                  </span>
+                </label>
                 <button className="btn btn--primary btn--lg btn--block" disabled={busy || !quizId} onClick={createRoom}>방 만들기</button>
                 <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--dim)' }}>
                   퀴즈를 새로 만들려면 <a href="/admin" style={{ color: 'var(--sig-2)' }}>출제 화면</a>으로 이동하세요.
@@ -350,23 +370,25 @@ export default function HostPage() {
 
         {phase === 'lobby' && room && (
           <section className="scene on">
-            <div className="lobby">
+            <div className="lobby" style={offlineRoom ? { gridTemplateColumns: 'minmax(0, 1fr)' } : undefined}>
               <div className="lobby__left">
                 <div className={`title-slot-lg ${quiz?.titleImage ? 'filled' : ''}`}
                   style={quiz?.titleImage ? { backgroundImage: `url("${mediaUrl(quiz.titleImage)}")` } : undefined}>
                   <span>타이틀 이미지</span>
                 </div>
-                <div className="joinurl">태블릿으로 접속 → <b>{window.location.host}</b></div>
+                {!offlineRoom && <div className="joinurl">태블릿으로 접속 → <b>{window.location.host}</b></div>}
                 <div className="joinurl" style={{ fontSize: 13, color: 'var(--dim)' }}>
                   관객 화면 → <b style={{ fontSize: 14 }}>{window.location.host}/screen?pin={room.pin}</b>
                 </div>
-                <div className="pin-tiles">{[...room.pin].map((d, i) => <span key={i}>{d}</span>)}</div>
-                {qr && <div className="qr-box on"><img src={qr} alt="입장 QR 코드" /></div>}
+                {!offlineRoom && <div className="pin-tiles">{[...room.pin].map((d, i) => <span key={i}>{d}</span>)}</div>}
+                {!offlineRoom && qr && <div className="qr-box on"><img src={qr} alt="입장 QR 코드" /></div>}
               </div>
-              <div className="lobby__right">
-                <div className="lobby__count"><b>{players.length}</b> 명 입장 · 최대 {room.maxPlayers}명</div>
-                <div className="namewall">{players.map(p => <span key={p.id}>{p.displayName}</span>)}</div>
-              </div>
+              {!offlineRoom && (
+                <div className="lobby__right">
+                  <div className="lobby__count"><b>{players.length}</b> 명 입장 · 최대 {room.maxPlayers}명</div>
+                  <div className="namewall">{players.map(p => <span key={p.id}>{p.displayName}</span>)}</div>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -378,15 +400,17 @@ export default function HostPage() {
                 <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
                 <h1 className="q-title">{question.text}</h1>
               </div>
-              <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
-                <b className="num">{progress.answered}</b>
-                <span>제출 / {progress.total || players.length}</span>
-              </div>
+              {!offlineRoom && (
+                <div className={`submit-count ${progress.total > 0 && progress.answered >= progress.total ? 'done' : ''}`}>
+                  <b className="num">{progress.answered}</b>
+                  <span>제출 / {progress.total || players.length}</span>
+                </div>
+              )}
             </div>
             <div className="q-body">
               {question.image && <div className="q-media on"><img src={mediaUrl(question.image)} alt="" /></div>}
               {question.type === 'short' ? (
-                <div className="short-hint">참여자가 태블릿에 정답을 직접 입력합니다</div>
+                <div className="short-hint">{offlineRoom ? '참가자가 화이트보드에 정답을 적습니다' : '참여자가 태블릿에 정답을 직접 입력합니다'}</div>
               ) : (
                 <div className={`opts-lg ${question.options.length <= 2 && question.type !== 'ox' ? 'one-col' : ''}`}>
                   {question.options.map((o, i) => (
@@ -406,16 +430,18 @@ export default function HostPage() {
           <section className="scene on">
             <div className="tally-head">
               <h2>{tally.index + 1}. {tally.question}</h2>
-              <div className="tally-sum">
-                <span className="ok">정답 <b className="num">{tally.correctCount}</b></span>
-                <span className="no">오답 <b className="num">{tally.wrongCount}</b></span>
-                <span className="na">무응답 <b className="num">{tally.noAnswer}</b></span>
-              </div>
+              {!offlineRoom && (
+                <div className="tally-sum">
+                  <span className="ok">정답 <b className="num">{tally.correctCount}</b></span>
+                  <span className="no">오답 <b className="num">{tally.wrongCount}</b></span>
+                  <span className="na">무응답 <b className="num">{tally.noAnswer}</b></span>
+                </div>
+              )}
             </div>
             <div className="answer-strip">정답 <span>{tally.correctLabels.join(' / ') || '—'}</span>
               {tally.explanation && <em>{tally.explanation}</em>}
             </div>
-            {tally.type === 'short' ? (
+            {!offlineRoom && (tally.type === 'short' ? (
               <div className="rows">
                 {tally.buckets.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 18 }}>제출된 답이 없습니다.</p>}
                 {tally.buckets.map(b => (
@@ -446,7 +472,7 @@ export default function HostPage() {
                   </div>
                 ))}
               </div>
-            )}
+            ))}
           </section>
         )}
 
@@ -461,15 +487,19 @@ export default function HostPage() {
           <section className="scene on">
             <div className="final-head">
               <h1>퀴즈 종료</h1>
-              <p className="final-note">
-                {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-              </p>
+              {!offlineRoom && (
+                <p className="final-note">
+                  {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
+                </p>
+              )}
             </div>
-            <div className="board board--final">
-              {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
-            </div>
+            {!offlineRoom && (
+              <div className="board board--final">
+                {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
+              </div>
+            )}
             <div className="final-actions">
-              <button className="btn" onClick={() => downloadResults(room.pin).catch(e => toast(e.message, true))}>결과 CSV 내려받기</button>
+              {!offlineRoom && <button className="btn" onClick={() => downloadResults(room.pin).catch(e => toast(e.message, true))}>결과 CSV 내려받기</button>}
               <button className="btn btn--ghost" onClick={() => { sessionStorage.removeItem(STORE); window.location.reload(); }}>새 퀴즈 진행</button>
             </div>
           </section>
