@@ -14,6 +14,8 @@ const LoginPage = lazy(() => import('./pages/login/LoginPage'));
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const HostPage = lazy(() => import('./pages/host/HostPage'));
 const ScreenPage = lazy(() => import('./pages/screen/ScreenPage'));
+const DrinkPage = lazy(() => import('./pages/drink/DrinkPage'));
+const VoicePage = lazy(() => import('./pages/voice/VoicePage'));
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
@@ -24,6 +26,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/host" element={<HostPage />} />
         <Route path="/screen" element={<ScreenPage />} />
+        <Route path="/drink" element={<DrinkPage />} />
+        <Route path="/voice" element={<VoicePage />} />
         <Route path="*" element={<PlayerPage />} />
       </Routes>
     </Suspense>

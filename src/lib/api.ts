@@ -45,6 +45,22 @@ export function upload(kind: 'image' | 'video', file: File, onProgress?: (pct: n
   });
 }
 
+/** 음성 실습 대본 음성. 받는 대로 재생하도록 응답 스트림을 그대로 돌려준다 */
+export async function voiceSpeech(signal: AbortSignal) {
+  const op = getOperator();
+  const res = await fetch(`${API_URL}/api/voice/speech`, {
+    method: 'POST',
+    headers: op ? { Authorization: `Bearer ${op.token}` } : {},
+    signal,
+  });
+  if (res.status === 401) {
+    goLogin();
+    throw new Error('다시 로그인해 주세요.');
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '음성을 만들지 못했습니다.');
+  return res.body!;
+}
+
 /** 결과 CSV 내려받기 (링크로는 인증 헤더를 못 붙이므로 받아서 저장) */
 export async function downloadResults(pin: string) {
   const op = getOperator();

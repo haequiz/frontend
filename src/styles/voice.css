@@ -1,0 +1,15 @@
+.voice {
+  min-height: 100dvh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 32px; padding: 6% 8%;
+  text-align: center; word-break: keep-all;
+}
+.voice .eyebrow { margin: 0; }
+.voice__title { font-size: clamp(36px, 5vw, 64px); }
+.voice__read { margin: 0; max-width: 1100px; font-size: clamp(26px, 3.2vw, 44px); font-weight: 700; line-height: 1.55; }
+.voice__count { font-family: var(--font-num); font-size: clamp(72px, 12vw, 160px); font-weight: 800; line-height: 1; color: var(--t-accent); }
+.voice__consent { display: flex; align-items: center; gap: 12px; font-size: clamp(16px, 1.6vw, 22px); cursor: pointer; }
+.voice__consent input { width: 22px; height: 22px; flex: none; }
+.voice__note { margin: 0; font-size: 14px; color: var(--muted); }
+.voice__fake { padding: 8px 18px; border-radius: 999px; background: var(--no); color: #fff; font-size: clamp(16px, 1.6vw, 24px); font-weight: 800; }
+.voice__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }

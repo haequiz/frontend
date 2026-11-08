@@ -1,0 +1,7 @@
+.drink { position: fixed; inset: 0; background: #000; }
+.drink canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.drink__error {
+  position: absolute; inset: 0; margin: 0; padding: 24px;
+  display: grid; place-items: center;
+  color: #fff; font-size: 20px; font-weight: 700; text-align: center; word-break: keep-all;
+}
