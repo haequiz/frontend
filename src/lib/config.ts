@@ -7,6 +7,9 @@ export function mediaUrl(path: string | null | undefined): string {
   return path.startsWith('/media/') ? API_URL + path : path;
 }
 
+/** 올릴 때 형식으로 확장자를 정하므로 주소만 보고 음성인지 안다 */
+export const isAudio = (url: string) => /\.(mp3|wav|m4a)$/i.test(url);
+
 /** 참여자 입장 주소 (QR) — 프론트가 올라간 주소 그대로 */
 export function joinUrl(pin: string): string {
   return `${window.location.origin}/?pin=${pin}`;

@@ -15,10 +15,11 @@ import type { Question, QuestionType, Quiz, QuizSummary, Theme } from '../../lib
 
 const COLORS = ['sig-1', 'sig-2', 'sig-3', 'sig-4', 'sig-5', 'sig-6'];
 const LABEL_STYLE = { fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 } as const;
+const AFTER_ACCEPT = 'video/mp4,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a';
 
 function blankQ(type: QuestionType): Question {
   const q: Question = {
-    type, text: '', image: '', video: '', points: 1000, explanation: '', options: [], answers: [],
+    type, text: '', image: '', video: '', afterMedia: '', afterTitle: '', points: 1000, explanation: '', options: [], answers: [],
     caseSensitive: false, ignoreSpaces: true, ignorePunctuation: false,
   };
   if (type === 'mc') q.options = [0, 1, 2, 3].map(i => ({ text: '', image: '', correct: i === 0 }));
@@ -172,11 +173,12 @@ export default function AdminPage() {
     const target = curRef.current;
     if (!file || !target) return;
     setVideoUpload({ key, pct: 0 });
+    const audio = file.type.startsWith('audio/');
     try {
-      const url = await upload('video', file, pct => setVideoUpload({ key, pct }));
+      const url = await upload(audio ? 'audio' : 'video', file, pct => setVideoUpload({ key, pct }));
       if (curRef.current?.id !== target.id) return toast('올리는 사이 다른 퀴즈로 이동해서 넣지 않았습니다.', true);
       mutate(q => apply(q, url));
-      toast('영상을 올렸습니다. 저장해야 퀴즈에 반영됩니다.');
+      toast(`${audio ? '음성' : '영상'}을 올렸습니다. 저장해야 퀴즈에 반영됩니다.`);
     } catch (e) {
       toast((e as Error).message, true);
     } finally {
@@ -412,13 +414,18 @@ export default function AdminPage() {
                       if (a === 'del') qs.splice(i, 1);
                       if (a.startsWith('type:')) {
                         const fresh = blankQ(a.slice(5) as QuestionType);
-                        Object.assign(fresh, { text: qs[i].text, image: qs[i].image, video: qs[i].video, points: qs[i].points, explanation: qs[i].explanation });
+                        Object.assign(fresh, { text: qs[i].text, image: qs[i].image, video: qs[i].video, afterMedia: qs[i].afterMedia, afterTitle: qs[i].afterTitle, points: qs[i].points, explanation: qs[i].explanation });
                         qs[i] = fresh;
                       }
                     })}
                     pickImage={pickImage}
                     videoSlot={videoSlot(`q${i}`)}
-                    pickVideo={f => uploadVideo(`q${i}`, f, (z, url) => { z.questions[i].video = url; })} />
+                    pickVideo={f => uploadVideo(`q${i}`, f, (z, url) => { z.questions[i].video = url; })}
+                    afterSlot={videoSlot(`after${i}`)}
+                    pickAfter={f => uploadVideo(`after${i}`, f, (z, url) => {
+                      z.questions[i].afterMedia = url;
+                      z.questions[i].afterTitle = f!.name.replace(/\.[^.]+$/, '');
+                    })} />
                 ))}
 
                 <div className="addq">
@@ -452,16 +459,16 @@ function ImageSlot({ url, className, hint, onPick, onClear }: {
 }
 
 /** 영상 한 칸: 올리기 · 미리보기 · 빼기 */
-function VideoSlot({ url, busy, pct, onPick, onClear }: {
-  url: string; busy: boolean; pct: number | null; onPick: (file?: File) => void; onClear: () => void;
+function VideoSlot({ url, busy, pct, onPick, onClear, noun = '영상', accept = 'video/mp4,video/webm' }: {
+  url: string; busy: boolean; pct: number | null; onPick: (file?: File) => void; onClear: () => void; noun?: string; accept?: string;
 }) {
   return (
     <div className="vslot">
       {url && <video className="vslot__preview" src={mediaUrl(url)} preload="metadata" controls />}
       <div className="vslot__actions">
         <label className="btn btn--sm" style={{ cursor: busy ? 'wait' : 'pointer' }}>
-          {pct !== null ? `올리는 중 ${pct}%` : url ? '다른 영상으로 바꾸기' : '+ 영상 올리기'}
-          <input type="file" accept="video/mp4,video/webm" hidden disabled={busy}
+          {pct !== null ? `올리는 중 ${pct}%` : url ? `다른 ${noun}으로 바꾸기` : `+ ${noun} 올리기`}
+          <input type="file" accept={accept} hidden disabled={busy}
             onChange={e => { onPick(e.target.files?.[0]); e.target.value = ''; }} />
         </label>
         {url && <button className="btn btn--sm btn--danger" type="button" onClick={onClear}>빼기</button>}
@@ -470,10 +477,11 @@ function VideoSlot({ url, busy, pct, onPick, onClear }: {
   );
 }
 
-function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage, videoSlot, pickVideo }: {
+function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage, videoSlot, pickVideo, afterSlot, pickAfter }: {
   q: Question; i: number; count: number; closed: boolean; toggle: () => void;
   mutate: (fn: (q: Question) => void) => void; action: (a: string) => void; pickImage: (done: (url: string) => void) => void;
   videoSlot: { busy: boolean; pct: number | null }; pickVideo: (file?: File) => void;
+  afterSlot: { busy: boolean; pct: number | null }; pickAfter: (file?: File) => void;
 }) {
   const [answer, setAnswer] = useState('');
   return (
@@ -522,6 +530,12 @@ function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage, 
         <div className="field">
           <span>문제 영상 (선택) <small style={{ color: 'var(--dim)' }}>문제로 넘어가면 빔프로젝터에 먼저 재생 · 절반쯤에 문제와 보기가 뜨고 태블릿에서 답을 받습니다</small></span>
           <VideoSlot url={q.video} {...videoSlot} onPick={pickVideo} onClear={() => mutate(x => { x.video = ''; })} />
+        </div>
+
+        <div className="field">
+          <span>추가 영상 · 음성 (없음이 기본) <small style={{ color: 'var(--dim)' }}>넣으면 정답이 나온 뒤 진행 화면에 재생 버튼이 생깁니다 · 없으면 버튼 없이 다음 문제로 넘어갑니다</small></span>
+          <VideoSlot url={q.afterMedia} {...afterSlot} noun="영상 · 음성" accept={AFTER_ACCEPT} onPick={pickAfter}
+            onClear={() => mutate(x => { x.afterMedia = ''; x.afterTitle = ''; })} />
         </div>
 
         {q.type === 'mc' && (

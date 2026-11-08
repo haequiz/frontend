@@ -19,7 +19,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 /** 파일 업로드 (영상은 커서 진행률을 보여 주려고 XHR) */
-export function upload(kind: 'image' | 'video', file: File, onProgress?: (pct: number) => void): Promise<string> {
+export function upload(kind: 'image' | 'video' | 'audio', file: File, onProgress?: (pct: number) => void): Promise<string> {
   return new Promise((resolve, reject) => {
     const fd = new FormData();
     fd.append('file', file);

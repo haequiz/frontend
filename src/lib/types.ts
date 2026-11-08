@@ -25,6 +25,8 @@ export interface Question {
   text: string;
   image: string;
   video: string;   // 문항으로 넘어가면 먼저 재생, 절반쯤에 문제를 띄운다
+  afterMedia: string;   // 정답이 나온 뒤 진행자가 버튼으로 트는 영상 · 음성 (없으면 빈 문자열)
+  afterTitle: string;
   points: number;
   explanation: string;
   options: Option[];
@@ -78,7 +80,7 @@ export interface QuizMeta {
 /** 관객 화면에서 재생 중인 영상. seq 로 '절반 지남 · 끝남' 알림을 맞춘다 */
 export interface Playing {
   seq: number;
-  kind: 'opening' | 'question' | 'ending' | 'clip';
+  kind: 'opening' | 'question' | 'ending' | 'clip' | 'after';
   id: number | null;
   title: string;
   url: string;

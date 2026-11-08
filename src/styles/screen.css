@@ -211,6 +211,15 @@
   font: inherit; font-size: 20px; font-weight: 700; cursor: pointer;
 }
 
+/* 추가 음성: 그림이 없으므로 무엇을 듣는지 글자로 보여 준다 */
+.vaudio {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 28px; padding: 6% 8%; text-align: center; word-break: keep-all; color: #fff;
+}
+.vaudio__fake { padding: 8px 18px; border-radius: 999px; background: var(--no); font-size: clamp(16px, 1.6vw, 24px); font-weight: 800; }
+.vaudio__title { margin: 0; font-size: clamp(36px, 5vw, 64px); font-weight: 800; }
+
 /* 문제 영상이 절반을 지나면 영상 아래쪽에 문제와 보기 */
 .vq {
   position: absolute; left: 0; right: 0; bottom: 0;

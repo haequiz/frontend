@@ -5,7 +5,7 @@ import { Realtime, type GameEvent } from '../../lib/realtime';
 import { getOperator, goLogin, logout } from '../../lib/auth';
 import { api, downloadResults } from '../../lib/api';
 import { applyTheme } from '../../lib/theme';
-import { joinUrl, mediaUrl } from '../../lib/config';
+import { isAudio, joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast } from '../../lib/ui';
 import { Row } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
@@ -165,10 +165,12 @@ export default function HostPage() {
   /* ---------- 버튼 · 단축키 ---------- */
   const total = room?.quiz.questions.length ?? 0;
   const isLast = qIndex >= total - 1;
+  const afterMedia = phase === 'tally' || phase === 'board' ? room?.quiz.questions[qIndex]?.afterMedia : '';
   const can = {
     start: phase === 'lobby' && !video,   // 오프닝 영상 중에는 다시 누르지 않는다
     endq: phase === 'question',
     board: phase === 'tally' && !room?.offline,
+    after: !!afterMedia && video?.kind !== 'after',
     next: phase === 'tally' || phase === 'board',
   };
 
@@ -179,6 +181,7 @@ export default function HostPage() {
     if (k === 'f' && room) { e.preventDefault(); togglePresent(); }   // 방을 만들기 전에는 발표 모드 없음
     if (k === 'e' && can.endq) { e.preventDefault(); send('host.endQuestion'); }
     if (k === 'b' && can.board) { e.preventDefault(); send('host.scoreboard'); }
+    if (e.code === 'KeyA' && can.after) { e.preventDefault(); send('host.afterMedia'); }   // 발표 모드에서는 버튼을 누를 수 없다
     if (e.code === 'Space' || k === 'arrowright') {
       e.preventDefault();
       if (can.next) send('host.next');
@@ -252,6 +255,11 @@ export default function HostPage() {
             <button className={`btn ${progress.total > 0 && progress.answered >= progress.total ? 'btn--primary' : ''}`}
               disabled={!can.endq} onClick={() => send('host.endQuestion')}>{offlineRoom ? '정답 공개' : '답안 마감'}</button>
             {!offlineRoom && <button className="btn" disabled={!can.board} onClick={() => send('host.scoreboard')}>순위 보기</button>}
+            {afterMedia && (
+              <button className="btn btn--primary" disabled={!can.after} onClick={() => send('host.afterMedia')}>
+                추가 {isAudio(afterMedia) ? '음성' : '영상'} 재생 (A)
+              </button>
+            )}
             <button className="btn btn--primary" disabled={!can.next} onClick={() => send('host.next')}>
               {phase === 'tally' && isLast ? (offlineRoom ? '퀴즈 종료' : '결과 발표') : '다음 문제'}
             </button>
@@ -263,7 +271,7 @@ export default function HostPage() {
                 {video.kind === 'question' && !offlineRoom && (locked ? ' · 절반이 지나면 답을 받습니다' : ' · 답 받는 중')}
               </span>
               <button className="btn btn--sm btn--block" onClick={() => send('host.video', { videoId: null })}>
-                영상 건너뛰기 ▶▶
+                {video.kind === 'after' ? '재생 끝내기' : '영상 건너뛰기'} ▶▶
               </button>
             </div>
           )}

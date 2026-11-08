@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Realtime } from '../../lib/realtime';
 import { getOperator, goLogin, logout } from '../../lib/auth';
 import { applyTheme } from '../../lib/theme';
-import { joinUrl, mediaUrl } from '../../lib/config';
+import { isAudio, joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast, toggleFullscreen } from '../../lib/ui';
 import type { BoardRow, Ended, Playing, Progress, QuestionView, QuizMeta, Reveal, Tally } from '../../lib/types';
 import { Row } from '../../components/Board';
@@ -365,6 +365,12 @@ export default function ScreenPage() {
 
       <div className="vstage" hidden={!playing}>
         <video ref={videoEl} playsInline onTimeUpdate={onVideoTime} onEnded={onVideoEnded} />
+        {playing?.kind === 'after' && isAudio(playing.url) && (
+          <div className="vaudio">
+            <span className="vaudio__fake">AI로 만든 가짜 음성</span>
+            <h1 className="vaudio__title">{playing.title}</h1>
+          </div>
+        )}
         {showQ && playing?.kind === 'question' && question && (
           <div className="vq">
             <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
