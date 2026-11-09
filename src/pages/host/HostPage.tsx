@@ -31,6 +31,8 @@ interface ResumeReply extends Room {
   qIndex: number;
   video: Playing | null;
   locked: boolean;
+  openingDone: boolean;
+  afterPlayed: boolean;
   players: PlayerList;
   question: QuestionView | null;
   progress: Progress | null;
@@ -62,6 +64,8 @@ export default function HostPage() {
   const [ended, setEnded] = useState<Ended | null>(null);
   const [video, setVideo] = useState<Playing | null>(null);   // 관객 화면에서 재생 중인 영상
   const [locked, setLocked] = useState(false);                 // 문제 영상 절반 전 — 아직 답을 받지 않는다
+  const [openingDone, setOpeningDone] = useState(false);       // 오프라인 방: 오프닝이 끝나 1번 문제 시작을 기다린다
+  const [afterPlayed, setAfterPlayed] = useState(false);       // 이 문항의 추가 영상을 이미 틀었다 (문항마다 한 번만)
   const [qr, setQr] = useState('');
   const [present, setPresent] = useState(false);
   const [online, setOnline] = useState(true);
@@ -87,6 +91,8 @@ export default function HostPage() {
       setQIndex(r.qIndex);
       setVideo(r.video);
       setLocked(r.locked);
+      setOpeningDone(r.openingDone);
+      setAfterPlayed(r.afterPlayed);
       if (r.state === 'question' && r.question) { setQuestion(r.question); setProgress(r.progress!); setPhase('question'); }
       else if (r.state === 'reveal' && r.reveal) { setTally(r.reveal.tally); setPhase('tally'); }
       else if (r.state === 'scoreboard' && r.scoreboard) { setBoard(r.scoreboard); setPhase('board'); }
@@ -108,6 +114,8 @@ export default function HostPage() {
       setQIndex(-1);
       setVideo(null);
       setLocked(false);
+      setOpeningDone(false);
+      setAfterPlayed(false);
       setPhase('lobby');
     } catch (e) {
       toast((e as Error).message, true);
@@ -130,6 +138,7 @@ export default function HostPage() {
         if (!mine(ev)) return;
         setQuestion(q);
         setQIndex(q.index);
+        setAfterPlayed(false);
         setProgress({ answered: 0, changed: 0, total: 0 });
         setPhase('question');
       }),
@@ -137,8 +146,8 @@ export default function HostPage() {
       rt.on<Reveal>('game.reveal', (d, ev) => { if (mine(ev)) { setTally(d.tally); setPhase('tally'); } }),
       rt.on<{ scoreboard: BoardRow[] }>('game.scoreboard', (d, ev) => { if (mine(ev)) { setBoard(d.scoreboard); setPhase('board'); } }),
       rt.on<Ended>('game.ended', (d, ev) => { if (mine(ev)) { setEnded(d); setPhase('end'); } }),
-      rt.on<{ video: Playing | null; locked: boolean }>('game.video', (d, ev) => {
-        if (mine(ev)) { setVideo(d.video); setLocked(d.locked); }
+      rt.on<{ video: Playing | null; locked: boolean; openingDone: boolean; afterPlayed: boolean }>('game.video', (d, ev) => {
+        if (mine(ev)) { setVideo(d.video); setLocked(d.locked); setOpeningDone(d.openingDone); setAfterPlayed(d.afterPlayed); }
       }),
       rt.on('game.closed', (_d, ev) => { if (mine(ev)) sessionStorage.removeItem(STORE); }),
     ];
@@ -170,7 +179,7 @@ export default function HostPage() {
     start: phase === 'lobby' && !video,   // 오프닝 영상 중에는 다시 누르지 않는다
     endq: phase === 'question',
     board: phase === 'tally' && !room?.offline,
-    after: !!afterMedia && video?.kind !== 'after',
+    after: !!afterMedia && !afterPlayed,
     next: phase === 'tally' || phase === 'board',
   };
 
@@ -250,7 +259,7 @@ export default function HostPage() {
           <div className="section-label">진행</div>
           <div style={{ display: 'grid', gap: 8 }}>
             <button className="btn btn--primary" disabled={!can.start} onClick={() => send('host.start')}>
-              {quiz?.openingVideo ? '퀴즈 시작 · 오프닝 영상부터' : '퀴즈 시작'}
+              {openingDone ? '1번 문제 시작' : quiz?.openingVideo ? '퀴즈 시작 · 오프닝 영상부터' : '퀴즈 시작'}
             </button>
             <button className={`btn ${progress.total > 0 && progress.answered >= progress.total ? 'btn--primary' : ''}`}
               disabled={!can.endq} onClick={() => send('host.endQuestion')}>{offlineRoom ? '정답 공개' : '답안 마감'}</button>
