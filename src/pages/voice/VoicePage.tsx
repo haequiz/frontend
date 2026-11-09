@@ -40,6 +40,13 @@ function encodeWav(samples: Float32Array, rate: number) {
 
 /** 받는 대로 재생해서 전부 만들어질 때까지 기다리지 않는다 */
 async function playStream(audio: HTMLAudioElement, body: ReadableStream<Uint8Array<ArrayBuffer>>) {
+  // 아이폰 Safari 에는 MediaSource 가 없어 전부 받은 뒤 재생한다
+  if (!window.MediaSource?.isTypeSupported('audio/mpeg')) {
+    const data = await new Response(body).arrayBuffer();
+    audio.src = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
+    await audio.play().catch(() => { throw new Error('소리를 재생하지 못했습니다.'); });
+    return;
+  }
   const source = new MediaSource();
   audio.src = URL.createObjectURL(source);
   await new Promise(done => source.addEventListener('sourceopen', done, { once: true }));
@@ -138,6 +145,7 @@ export default function VoicePage() {
   }
 
   async function speak() {
+    audioRef.current!.load();   // 아이폰은 탭한 순간에 건드려 둬야 응답을 기다린 뒤에도 재생할 수 있다
     setStep('speaking');
     const controller = new AbortController();
     speechRef.current = controller;
