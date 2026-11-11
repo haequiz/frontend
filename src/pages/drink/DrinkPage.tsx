@@ -92,6 +92,7 @@ export default function DrinkPage() {
     const canvas = canvasRef.current!;
     const shader = createShader(canvas);
     if (!shader) {
+      console.warn('[drink] WebGL2를 쓸 수 없어 카메라 효과를 끔');
       setError('이 브라우저에서는 카메라 효과를 쓸 수 없습니다.');
       return;
     }
@@ -128,11 +129,16 @@ export default function DrinkPage() {
         stream = s;
         video.srcObject = s;
         await video.play();
+        console.info(`[drink] 카메라 켜짐 ${video.videoWidth}x${video.videoHeight}`);
         frame = requestAnimationFrame(draw);
       })
-      .catch(e => setError(cameraError(e)));
+      .catch(e => {
+        console.error('[drink] 카메라 오류', e);
+        setError(cameraError(e));
+      });
 
     return () => {
+      if (stream) console.info('[drink] 카메라 끔');
       closed = true;
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach(track => track.stop());

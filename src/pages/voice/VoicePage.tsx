@@ -118,18 +118,22 @@ export default function VoicePage() {
           setCount(s);
           await wait(1000);
         }
+        console.info('[voice] 녹음 시작');
         sample = await recordSample(mic);
       } finally {
         mic.getTracks().forEach(track => track.stop());   // 녹음이 끝나면 바로 끈다
       }
+      console.info(`[voice] 녹음 끝 (${Math.round(sample.size / 1024)}KB), 목소리 복제 요청`);
       setStep('cloning');
       const form = new FormData();
       form.append('file', sample, 'sample.wav');
       const res = await api<{ scripts: Script[] }>('/api/voice', { method: 'POST', body: form });
+      console.info(`[voice] 목소리 복제 완료 - 대본 ${res.scripts.length}개`);
       setScripts(res.scripts);
       setChosen(0);
       setStep('script');
     } catch (e) {
+      console.error('[voice] 녹음/복제 실패', e);
       toast(errorText(e), true);
       backToReady();
     }
@@ -149,10 +153,16 @@ export default function VoicePage() {
     setStep('speaking');
     const controller = new AbortController();
     speechRef.current = controller;
+    console.info('[voice] 대본 읽기 -', scripts[chosen]?.label);
     try {
       await playStream(audioRef.current!, await voiceSpeech(chosen, controller.signal));
+      console.info('[voice] 대본 읽기 끝');
     } catch (e) {
-      if (controller.signal.aborted) return;   // 진행자가 멈춘 경우
+      if (controller.signal.aborted) {   // 진행자가 멈춘 경우
+        console.info('[voice] 대본 읽기 멈춤');
+        return;
+      }
+      console.error('[voice] 대본 읽기 실패', e);
       stopSpeech();
       toast(errorText(e), true);
       setStep('script');
@@ -164,8 +174,10 @@ export default function VoicePage() {
     stopSpeech();
     try {
       await api('/api/voice', { method: 'DELETE' });
+      console.info('[voice] 복제한 목소리 삭제');
       toast('복제한 목소리를 삭제했습니다.');
-    } catch {
+    } catch (e) {
+      console.error('[voice] 목소리 삭제 실패', e);
       toast('지금 삭제하지 못했습니다. 30분 안에 자동으로 삭제됩니다.', true);
     }
     setScripts([]);
