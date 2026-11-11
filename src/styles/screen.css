@@ -63,6 +63,14 @@
 #s-question .opt-lg img { width: 44px; height: 44px; }
 #s-question .short-hint { width: min(100%, 900px); margin: 0 auto; font-size: 20px; }
 
+/* OX — 보기가 두 칸뿐이므로 크게. 높이·글자를 화면 높이에 맞춰 문제를 밀어내지 않게 */
+#s-question .opts-lg--ox { gap: 20px; }
+#s-question .opts-lg--ox .opt-lg {
+  min-height: clamp(120px, 22vh, 260px);
+  font-size: clamp(56px, 13vh, 150px); line-height: 1;
+}
+#s-question .opts-lg--ox .glyph { display: none; }   /* OX 는 기호가 비어 있어 글자만 한가운데 */
+
 /* ------------------ 정답 발표 ------------------
    정답과 그 이유가 화면 한가운데. 집계 막대는 아래에 작게. */
 
@@ -70,7 +78,8 @@
 
 .tally-q {
   margin: 0; max-width: 90%;
-  font-size: clamp(16px, 1.6vw, 26px); font-weight: 700; color: var(--muted);
+  font-size: clamp(22px, 2.6vw, 48px); font-weight: 800; line-height: 1.3; color: var(--muted);
+  word-break: keep-all;
 }
 
 .answer-hero {
@@ -98,6 +107,13 @@
   font-size: clamp(17px, 1.75vw, 32px); line-height: 1.5; color: var(--chalk);
   word-break: keep-all;
 }
+/* OX 정답 — 상자와 O/X 글자를 크게 */
+.answer-hero--ox {
+  min-width: min(100%, 56vw);
+  padding: clamp(26px, 4.6vh, 60px) clamp(50px, 7vw, 140px);
+}
+.answer-hero--ox .answer-hero__label { font-size: clamp(16px, 2.2vh, 24px); }
+.answer-hero--ox .answer-hero__value { font-size: clamp(96px, 20vh, 240px); line-height: 1; }
 @keyframes answer-in {
   from { opacity: 0; transform: scale(.9) }
   to   { opacity: 1; transform: none }

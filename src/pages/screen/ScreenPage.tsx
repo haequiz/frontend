@@ -280,7 +280,7 @@ export default function ScreenPage() {
           {scene === 'tally' && tally && (
             <section className="scene on" id="s-tally">
               <p className="tally-q">{tally.index + 1}. {tally.question}</p>
-              <div className="answer-hero">
+              <div className={`answer-hero ${tally.type === 'ox' ? 'answer-hero--ox' : ''}`}>
                 <span className="answer-hero__label">정답</span>
                 <div className="answer-hero__value">{tally.correctLabels.join(' / ') || '—'}</div>
                 {tally.explanation && <p className="answer-hero__why">{tally.explanation}</p>}
@@ -404,7 +404,7 @@ function FinalBoard({ ended }: { ended: Ended }) {
 function QuestionOptions({ q, offline }: { q: QuestionView; offline: boolean }) {
   if (q.type === 'short') return <div className="short-hint">{offline ? '화이트보드에 정답을 적어 주세요' : '태블릿에 정답을 직접 입력하세요'}</div>;
   return (
-    <div className={`opts-lg ${q.options.length <= 2 && q.type !== 'ox' ? 'one-col' : ''}`}>
+    <div className={`opts-lg ${q.options.length <= 2 && q.type !== 'ox' ? 'one-col' : ''} ${q.type === 'ox' ? 'opts-lg--ox' : ''}`}>
       {q.options.map((o, i) => (
         <div key={o.id} className={`opt-lg ${optionColor(q.type, i, o.text)}`}>
           <span className="glyph">{q.type === 'ox' ? '' : GLYPHS[i % GLYPHS.length]}</span>
