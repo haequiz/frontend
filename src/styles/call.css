@@ -8,28 +8,17 @@
 .call--pick { justify-content: center; gap: 32px; }
 .call .eyebrow { margin: 0; }
 .call__title { margin: 0; font-size: clamp(36px, 5vw, 64px); }
-.call__scenes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
 .call__note { margin: 0; font-size: 14px; color: var(--muted); }
 
 .call__top { width: 100%; display: flex; justify-content: space-between; align-items: center; }
 .call__drill { padding: 6px 16px; border-radius: 999px; background: var(--no); color: #fff; font-size: clamp(14px, 1.4vw, 20px); font-weight: 800; }
 .call__lag { font-size: 14px; color: var(--dim); }
 
-/* 장면: 사진이 있으면 사진, 없으면 글자 카드 */
-.call__scene { width: min(100%, 1200px); max-height: 46vh; object-fit: contain; border-radius: 20px; }
-.call__scene--text {
-  display: flex; flex-direction: column; gap: 10px; padding: clamp(20px, 3vh, 36px);
-  background: var(--glass-strong); border: 2px solid var(--line); text-align: left;
-  font-size: clamp(22px, 2.6vw, 40px); font-weight: 700; line-height: 1.4;
-}
-.call__scene--text p { margin: 0; }
-.call__scene--text b { display: inline-block; min-width: 3.2em; color: var(--no); }
-
 .call__status { margin: 0; font-size: clamp(20px, 2.2vw, 32px); font-weight: 800; color: var(--ok); }
 .call__status.is-agent { color: var(--no); }
 
-/* 자막: 119 는 왼쪽, 학생은 오른쪽 */
-.call__lines { width: min(100%, 1200px); display: flex; flex-direction: column; gap: 10px; }
+/* 자막: 119 는 왼쪽, 학생은 오른쪽. 버튼 위로 쌓인다 */
+.call__lines { flex: 1; width: min(100%, 1200px); display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; }
 .call__line {
   margin: 0; max-width: 85%; padding: 12px 18px; border-radius: 16px; text-align: left;
   font-size: clamp(18px, 2vw, 30px); line-height: 1.45; background: var(--glass-strong);

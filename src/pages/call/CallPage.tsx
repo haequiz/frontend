@@ -5,11 +5,11 @@ import { ConversationProvider, useConversation } from '@elevenlabs/react';
 import { api } from '../../lib/api';
 import { getOperator, goLogin } from '../../lib/auth';
 import { toast } from '../../lib/ui';
-import { SCENES, dispatcherPrompt, type Scene } from './scenes';
+import { DISPATCHER_PROMPT } from './prompt';
 
 /* ============================================================
    119 모의 신고 (화재 신고 훈련)
-   진행자 노트북을 빔에 연결해 쓴다. 학생이 장면을 보고 마이크에 말하면
+   진행자 노트북을 빔에 연결해 쓴다. 학생이 현장에서 받은 화재 장면 사진을 보고 마이크에 말하면
    ElevenLabs 상담원 에이전트가 목소리로 답한다. 실제 전화는 걸지 않는다.
    ============================================================ */
 
@@ -27,7 +27,7 @@ export default function CallPage() {
 }
 
 function Call() {
-  const [scene, setScene] = useState<Scene | null>(null);
+  const [started, setStarted] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [lag, setLag] = useState<number | null>(null);
   const [ended, setEnded] = useState(false);
@@ -81,9 +81,9 @@ function Call() {
     },
   });
 
-  async function start(s: Scene) {
-    console.info('[call] 통화 시작 -', s.label);
-    setScene(s);
+  async function start() {
+    console.info('[call] 통화 시작');
+    setStarted(true);
     setLines([]);
     setLag(null);
     setEnded(false);
@@ -99,26 +99,22 @@ function Call() {
       conversation.startSession({
         conversationToken: token,
         connectionType: 'webrtc',
-        overrides: { agent: { prompt: { prompt: dispatcherPrompt(s) } } },
+        overrides: { agent: { prompt: { prompt: DISPATCHER_PROMPT } } },
       });
     } catch (e) {
       console.error('[call] 통화를 시작하지 못함', e);
       const { name, message } = e as Error;
       toast(name === 'NotAllowedError' ? '마이크 권한을 허용해 주세요.' : message, true);
-      setScene(null);
+      setStarted(false);
     }
   }
 
-  if (!scene) {
+  if (!started) {
     return (
       <main className="call call--pick">
         <p className="eyebrow">화재 신고 훈련</p>
         <h1 className="call__title">119 모의 신고</h1>
-        <div className="call__scenes">
-          {SCENES.map(s => (
-            <button key={s.label} className="btn btn--primary btn--lg" onClick={() => start(s)}>{s.label}</button>
-          ))}
-        </div>
+        <button className="btn btn--primary btn--lg" onClick={start}>시작</button>
         <p className="call__note">실제 119로 전화가 걸리지 않습니다. 학생 목소리는 녹음해 두지 않습니다.</p>
       </main>
     );
@@ -133,16 +129,6 @@ function Call() {
         <span className="call__drill">모의 훈련</span>
         {lag !== null && <span className="call__lag num">응답 {(lag / 1000).toFixed(1)}초</span>}
       </header>
-
-      {scene.image ? (
-        <img className="call__scene" src={scene.image} alt="" />
-      ) : (
-        <div className="call__scene call__scene--text">
-          <p><b>장소</b>{scene.place}</p>
-          <p><b>상황</b>{scene.situation}</p>
-          <p><b>사람</b>{scene.people}</p>
-        </div>
-      )}
 
       <p className={`call__status ${live && conversation.isSpeaking ? 'is-agent' : ''}`}>
         {over ? '신고가 끝났습니다'
@@ -160,10 +146,7 @@ function Call() {
 
       <div className="call__actions">
         {over ? (
-          <>
-            <button className="btn btn--primary btn--lg" onClick={() => start(scene)}>다시 하기</button>
-            <button className="btn btn--lg" onClick={() => setScene(null)}>다른 장면</button>
-          </>
+          <button className="btn btn--primary btn--lg" onClick={start}>다시 하기</button>
         ) : (
           <button className="btn btn--lg btn--danger" onClick={() => conversation.endSession()}>통화 끝내기</button>
         )}
