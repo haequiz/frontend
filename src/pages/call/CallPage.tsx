@@ -13,7 +13,8 @@ import { SCENES, dispatcherPrompt, type Scene } from './scenes';
    ElevenLabs 상담원 에이전트가 목소리로 답한다. 실제 전화는 걸지 않는다.
    ============================================================ */
 
-const LAST_TURN = 3;   // 학생이 세 번 말하면 상담원의 마무리 대답이 끝난 뒤 끊는다
+const CLOSING = '접수되었습니다';   // 지시문에서 마지막 대답에만 넣게 한 말. 이 대답이 끝나면 끊는다
+const HANG_UP_MS = 2000;           // 마지막 대답 뒤 이만큼 조용하면 끊는다 (문장 사이 쉼에서 끊기지 않게)
 
 type Line = { who: 'user' | 'agent'; text: string };
 
@@ -34,6 +35,7 @@ function Call() {
   const closing = useRef(false);       // 마지막 대답을 받았다
   const heardAt = useRef(0);           // 학생 목소리가 마지막으로 들린 시각
   const agentDoneAt = useRef(0);       // 상담원이 마지막으로 말을 마친 시각
+  const hangUp = useRef(0);            // 마지막 대답 뒤 끊기 타이머
 
   const conversation = useConversation({
     onMessage: ({ role, message }) => {
@@ -42,13 +44,14 @@ function Call() {
       console.info(`[call] ${role === 'agent' ? '119' : '학생'}: ${text}`);
       setLines(prev => [...prev, { who: role, text }]);
       if (role === 'user') turns.current += 1;
-      else if (turns.current >= LAST_TURN) closing.current = true;
+      else if (text.includes(CLOSING)) closing.current = true;
     },
     onVadScore: ({ vadScore }) => {
       if (vadScore > 0.5) heardAt.current = performance.now();
     },
     onModeChange: ({ mode }) => {
       const now = performance.now();
+      clearTimeout(hangUp.current);
       if (mode === 'speaking') {
         // 학생이 말을 마친 뒤 상담원 목소리가 나오기까지 (1.5초 안이 목표)
         if (heardAt.current > agentDoneAt.current) {
@@ -58,13 +61,17 @@ function Call() {
         return;
       }
       agentDoneAt.current = now;
+      // WebRTC 는 문장 사이 잠깐 쉴 때도 듣는 중으로 바뀌므로 조용함이 이어질 때만 끊는다
       if (closing.current) {
-        console.info('[call] 마무리 대답이 끝나 통화를 끊음');
-        conversation.endSession();   // 상담원이 스스로 끊지 않아도 마무리 대답 뒤에는 끊는다
+        hangUp.current = window.setTimeout(() => {
+          console.info('[call] 마무리 대답이 끝나 통화를 끊음');
+          conversation.endSession();
+        }, HANG_UP_MS);
       }
     },
     onConnect: ({ conversationId }) => console.info('[call] 연결됨', conversationId),
     onDisconnect: details => {
+      clearTimeout(hangUp.current);
       console.info('[call] 통화 끝 -', details.reason, `(학생 ${turns.current}번 말함)`);
       setEnded(true);
     },
