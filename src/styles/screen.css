@@ -48,6 +48,20 @@
 }
 .q-center .q-media { flex: 0 1 auto; max-height: 32vh; }
 
+/* 배점: 0점(연습문제)은 핑크 하트, 10 · 20 · 30점은 숫자. 문제가 드러날 때 튀어나온다 */
+.q-heart, .q-points { flex: none; animation: points-pop .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+.q-heart {
+  width: clamp(64px, 11vh, 130px); height: auto; aspect-ratio: 1;
+  fill: #FF6FAE; stroke: rgba(0, 0, 0, .35); stroke-width: .5;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .3));
+}
+.q-points {
+  padding: .08em .6em; border-radius: 999px;
+  background: var(--stage-3); border: 2px solid var(--line); color: var(--chalk);
+  font-size: clamp(36px, 6.5vh, 80px); font-weight: 900; line-height: 1.2;
+}
+@keyframes points-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+
 /* 보기 — 화면을 채우지 않고 아래쪽에 얌전히 */
 #s-question .opts-lg {
   flex: 0 0 auto; grid-auto-rows: auto;

@@ -16,10 +16,11 @@ import type { Question, QuestionType, Quiz, QuizSummary, Theme } from '../../lib
 const COLORS = ['sig-1', 'sig-2', 'sig-3', 'sig-4', 'sig-5', 'sig-6'];
 const LABEL_STYLE = { fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 } as const;
 const AFTER_ACCEPT = 'video/mp4,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a';
+const POINTS = [0, 10, 20, 30];   // 0 은 연습문제 (관객 화면에 하트), 나머지는 숫자로 뜬다
 
 function blankQ(type: QuestionType): Question {
   const q: Question = {
-    type, text: '', image: '', video: '', afterMedia: '', afterTitle: '', points: 1000, explanation: '', options: [], answers: [],
+    type, text: '', image: '', video: '', afterMedia: '', afterTitle: '', points: 10, explanation: '', options: [], answers: [],
     caseSensitive: false, ignoreSpaces: true, ignorePunctuation: false,
   };
   if (type === 'mc') q.options = [0, 1, 2, 3].map(i => ({ text: '', image: '', correct: i === 0 }));
@@ -508,11 +509,14 @@ function QuestionCard({ q, i, count, closed, toggle, mutate, action, pickImage, 
               ))}
             </div>
           </div>
-          <label className="field" style={{ margin: 0, width: 120 }}>
-            <span>배점</span>
-            <input className="input" type="number" min={0} max={10000} step={100} value={q.points}
-              onChange={e => mutate(x => { x.points = Number(e.target.value); })} />
-          </label>
+          <div>
+            <div style={{ ...LABEL_STYLE, marginBottom: 6 }}>배점</div>
+            <div className="typeseg">
+              {POINTS.map(p => (
+                <button key={p} className={q.points === p ? 'on' : ''} onClick={() => mutate(x => { x.points = p; })}>{p}점</button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <label className="field">
