@@ -129,28 +129,14 @@ export interface Tally {
   max: number;
 }
 
-export interface BoardRow {
-  rank: number;
-  tied: boolean;
-  id?: string;
-  displayName: string;
-  score: number;
-  gained?: number;
-  correct?: boolean;
-  correctCount?: number;
-}
-
 export interface Reveal {
   tally: Tally;
-  scoreboard: BoardRow[];
 }
 
+/** 결선 진출자 명단: 순위 없이 이름만, 학년 → 반 → 이름 순 */
 export interface Ended {
-  podium: BoardRow[];
-  scoreboard: BoardRow[];
-  shownTop: number;
+  finalists: string[];
   totalPlayers: number;
-  totalQuestions: number;
 }
 
 export interface PlayerRow {
@@ -174,27 +160,19 @@ export interface PersonalResult {
   gained: number;
   myAnswer: string | null;
   score: number;
-  rank: number;
-  tied: boolean;
-  total: number;
   correctLabels: string[];
   explanation: string;
   regraded: boolean;
 }
 
-export interface PersonalRank {
-  rank: number;
-  tied: boolean;
+export interface PersonalFinal {
+  finalist: boolean;
   score: number;
-  total: number;
-}
-
-export interface PersonalFinal extends PersonalRank {
   correctCount: number;
   totalQuestions: number;
 }
 
-export type RoomState = 'lobby' | 'question' | 'reveal' | 'scoreboard' | 'ended';
+export type RoomState = 'lobby' | 'question' | 'reveal' | 'ended';
 
 export interface PlayerSnapshot {
   state: RoomState;
@@ -203,7 +181,6 @@ export interface PlayerSnapshot {
   question: QuestionView | null;
   myAnswer: { value: string; label: string } | null;
   result: PersonalResult | null;
-  rank: PersonalRank | null;
   final: PersonalFinal | null;
 }
 

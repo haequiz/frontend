@@ -6,7 +6,7 @@ import { applyTheme } from '../../lib/theme';
 import { mediaUrl } from '../../lib/config';
 import { GLYPHS, optionColor, toast } from '../../lib/ui';
 import type {
-  JoinReply, PersonalFinal, PersonalRank, PersonalResult, PlayerSnapshot, QuestionView, QuizMeta,
+  JoinReply, PersonalFinal, PersonalResult, PlayerSnapshot, QuestionView, QuizMeta,
 } from '../../lib/types';
 
 /* ============================================================
@@ -15,7 +15,7 @@ import type {
    탭을 닫았다 열거나 와이파이가 끊겨도 같은 자리로 이어진다.
    ============================================================ */
 
-type View = 'join' | 'lobby' | 'question' | 'result' | 'board' | 'end' | 'bye';
+type View = 'join' | 'lobby' | 'question' | 'result' | 'end' | 'bye';
 
 interface Saved {
   pin: string;
@@ -45,7 +45,6 @@ export default function PlayerPage() {
   const [question, setQuestion] = useState<QuestionView | null>(null);
   const [mine, setMine] = useState<{ value: string; label: string } | null>(null);
   const [result, setResult] = useState<PersonalResult | null>(null);
-  const [rank, setRank] = useState<PersonalRank | null>(null);
   const [final, setFinal] = useState<PersonalFinal | null>(null);
   const [score, setScore] = useState(0);
   const [watching, setWatching] = useState(false);
@@ -99,7 +98,6 @@ export default function PlayerPage() {
     setShortValue(s.myAnswer && s.question?.type === 'short' ? s.myAnswer.value : '');
     if (s.state === 'question') setView('question');
     else if (s.state === 'reveal' && s.result) { setResult(s.result); setView('result'); }
-    else if (s.state === 'scoreboard' && s.rank) { setRank(s.rank); setView('board'); }
     else if (s.state === 'ended' && s.final) { setFinal(s.final); setView('end'); }
     else setView('lobby');
   }
@@ -123,7 +121,6 @@ export default function PlayerPage() {
         setView('question');
       }),
       rt.on<PersonalResult>('game.result', d => { setResult(d); setScore(d.score); setView('result'); }),
-      rt.on<PersonalRank>('game.scoreboard', d => { setRank(d); setScore(d.score); setView('board'); }),
       rt.on<PersonalFinal>('game.ended', d => { setFinal(d); setScore(d.score); setView('end'); }),
       rt.on<{ playing: boolean }>('game.video', d => setWatching(d.playing)),
       rt.on<{ reason: string }>('game.closed', d => leave(d.reason || '퀴즈가 종료되었습니다')),
@@ -293,7 +290,6 @@ export default function PlayerPage() {
                 {!result.answered ? '무응답' : result.correct ? (result.regraded ? '정답 처리됨' : '정답') : '오답'}
               </div>
               <div className="gain num">{result.gained > 0 ? '+' : ''}{result.gained}</div>
-              <p className="rankline">현재 {result.tied && '공동 '}<b>{result.rank}</b>위 / {result.total}명</p>
               {(!result.correct && result.correctLabels.length > 0) || result.explanation ? (
                 <div className="answer-note">
                   {!result.correct && result.correctLabels.length > 0 && (
@@ -306,23 +302,11 @@ export default function PlayerPage() {
           </section>
         )}
 
-        {view === 'board' && rank && (
-          <section className="view">
-            <div className="center-stack">
-              <p className="eyebrow">현재 순위</p>
-              <div className="final-rank num">{rank.tied && <small>공동 </small>}{rank.rank}<small>위</small></div>
-              <p className="rankline"><b>{rank.score}</b> 점</p>
-              <p className="hint">다음 문제를 준비하세요</p>
-            </div>
-          </section>
-        )}
-
         {view === 'end' && final && (
           <section className="view">
             <div className="center-stack">
-              <div className="medal">{final.rank === 1 ? '🥇' : final.rank === 2 ? '🥈' : final.rank === 3 ? '🥉' : '🎉'}</div>
-              <p className="eyebrow">최종 순위</p>
-              <div className="final-rank num">{final.tied && <small>공동 </small>}{final.rank}<small>위</small></div>
+              {final.finalist && <div className="medal">🎉</div>}
+              <div className={`stamp ${final.finalist ? 'stamp--ok' : 'stamp--wait'}`}>{final.finalist ? '결선 진출!' : '수고했어요'}</div>
               <p className="rankline"><b>{final.score}</b> 점 · {final.correctCount} / {final.totalQuestions} 문제 정답</p>
             </div>
           </section>

@@ -322,7 +322,7 @@ export default function AdminPage() {
                         onClear={() => mutate(q => { q.openingVideo = ''; })} />
                     </div>
                     <div className="field">
-                      <span>엔딩 영상 <small style={{ color: 'var(--dim)' }}>결과 발표를 누르면 재생 → 끝나면 최종 순위</small></span>
+                      <span>엔딩 영상 <small style={{ color: 'var(--dim)' }}>결과 발표를 누르면 재생 → 끝나면 결선 진출자 명단</small></span>
                       <VideoSlot url={cur.endingVideo} {...videoSlot('ending')}
                         onPick={f => uploadVideo('ending', f, (q, url) => { q.endingVideo = url; })}
                         onClear={() => mutate(q => { q.endingVideo = ''; })} />

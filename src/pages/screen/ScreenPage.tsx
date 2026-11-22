@@ -7,8 +7,8 @@ import { getOperator, goLogin, logout } from '../../lib/auth';
 import { applyTheme } from '../../lib/theme';
 import { isAudio, joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast, toggleFullscreen } from '../../lib/ui';
-import type { BoardRow, Ended, Playing, Progress, QuestionView, QuizMeta, Reveal, Tally } from '../../lib/types';
-import { Row } from '../../components/Board';
+import type { Ended, Playing, Progress, QuestionView, QuizMeta, Reveal, Tally } from '../../lib/types';
+import { Finalists } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 
 /* ============================================================
@@ -16,24 +16,23 @@ import { qrDataUrl } from '../../lib/qr';
    받아서 보여주기만 하고, 영상은 연결되자마자 통째로 받아 둔다.
    ============================================================ */
 
-type Scene = 'connect' | 'lobby' | 'question' | 'tally' | 'board' | 'end' | 'bye';
+type Scene = 'connect' | 'lobby' | 'question' | 'tally' | 'end' | 'bye';
 
 interface JoinReply {
   pin: string;
   quiz: QuizMeta;
-  offline: boolean;   // 화이트보드 진행: 입장 안내 · 인원수 · 제출 현황 · 집계 · 순위를 띄우지 않는다
+  offline: boolean;   // 화이트보드 진행: 입장 안내 · 인원수 · 제출 현황 · 집계 · 결선 명단을 띄우지 않는다
   state: string;
   count: number;
   video: Playing | null;
   question: QuestionView | null;
   progress: Progress | null;
   reveal: Reveal | null;
-  scoreboard: BoardRow[] | null;
   ended: Ended | null;
 }
 
 const LABEL: Record<Scene, string> = {
-  connect: '연결 대기', lobby: '입장 대기', question: '답안 접수 중', tally: '정답 공개', board: '순위', end: '최종 결과', bye: '연결 종료',
+  connect: '연결 대기', lobby: '입장 대기', question: '답안 접수 중', tally: '정답 공개', end: '최종 결과', bye: '연결 종료',
 };
 const OFFLINE_LABEL: Record<Scene, string> = { ...LABEL, lobby: '대기', question: '문제', end: '종료' };
 
@@ -51,7 +50,6 @@ export default function ScreenPage() {
   const [question, setQuestion] = useState<QuestionView | null>(null);
   const [progress, setProgress] = useState<Progress>({ answered: 0, changed: 0, total: 0 });
   const [tally, setTally] = useState<Tally | null>(null);
-  const [board, setBoard] = useState<BoardRow[]>([]);
   const [ended, setEnded] = useState<Ended | null>(null);
   const [byeMsg, setByeMsg] = useState('');
   const [qr, setQr] = useState('');
@@ -81,7 +79,6 @@ export default function ScreenPage() {
       preloadVideos(r.quiz.videoUrls ?? []);
       if (r.question) { setQuestion(r.question); setProgress(r.progress ?? progress); setScene('question'); }
       else if (r.reveal) { setTally(r.reveal.tally); setScene('tally'); }
-      else if (r.scoreboard) { setBoard(r.scoreboard); setScene('board'); }
       else if (r.ended) { setEnded(r.ended); setScene('end'); }
       else setScene('lobby');
       playVideo(r.video);
@@ -156,7 +153,7 @@ export default function ScreenPage() {
   function onVideoEnded() {
     const v = playingRef.current;
     if (!v) return;
-    // 마지막 장면에 멈춰 두면 서버가 다음 장면(1번 문제 · 퀴즈 화면 · 최종 순위)을 보낸다. 알리지 못하면 바로 내린다
+    // 마지막 장면에 멈춰 두면 서버가 다음 장면(1번 문제 · 퀴즈 화면 · 결선 명단)을 보낸다. 알리지 못하면 바로 내린다
     rt.request('screen.videoEnded', { seq: v.seq }).catch(() => playVideo(null));
   }
 
@@ -174,7 +171,6 @@ export default function ScreenPage() {
       }),
       rt.on<Progress>('game.progress', d => { setProgress(d); setCount(d.total); }),
       rt.on<Reveal>('game.reveal', d => { setTally(d.tally); setScene('tally'); }),
-      rt.on<{ scoreboard: BoardRow[] }>('game.scoreboard', d => { setBoard(d.scoreboard); setScene('board'); }),
       rt.on<Ended>('game.ended', d => { setEnded(d); setScene('end'); }),
       rt.on<{ video: Playing | null }>('game.video', d => playVideo(d.video)),
       rt.on<{ reason: string }>('game.closed', d => {
@@ -230,7 +226,7 @@ export default function ScreenPage() {
                     aria-label="6자리 PIN" value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                   <button className="btn btn--primary btn--lg btn--block" style={{ marginTop: 14 }}>연결하기</button>
                   <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--dim)', lineHeight: 1.6 }}>
-                    이 화면에는 조작 버튼이 없습니다. 문제와 정답 집계, 순위만 표시됩니다.<br />
+                    이 화면에는 조작 버튼이 없습니다. 문제와 정답 집계, 결선 명단만 표시됩니다.<br />
                     방을 만든 운영자 계정으로만 열 수 있습니다.
                   </p>
                 </form>
@@ -329,13 +325,6 @@ export default function ScreenPage() {
             </section>
           )}
 
-          {scene === 'board' && (
-            <section className="scene scene-scroll on">
-              <p className="eyebrow" style={{ marginBottom: 16 }}>현재 순위</p>
-              <div className="board">{board.map(r => <Row key={r.id ?? r.displayName} r={r} />)}</div>
-            </section>
-          )}
-
           {scene === 'end' && ended && (
             <section className="scene on" id="s-end">
               {offline ? (
@@ -346,13 +335,11 @@ export default function ScreenPage() {
               ) : (
                 <>
                   <div className="final-head">
-                    <h1>퀴즈 종료</h1>
-                    <p className="final-note">
-                      {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-                    </p>
+                    <h1>결선 진출자</h1>
+                    <p className="final-note">참여 {ended.totalPlayers}명 중 {ended.finalists.length}명</p>
                   </div>
-                  {/* 빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게. 공동 순위로 10명을 넘으면 2열 */}
-                  <FinalBoard ended={ended} />
+                  {/* 빔 화면은 스크롤할 수 없으므로 최대 30명을 한 화면에 (10줄 × 3열) */}
+                  <Finalists ended={ended} />
                 </>
               )}
             </section>
@@ -392,18 +379,6 @@ export default function ScreenPage() {
         )}
       </div>
     </>
-  );
-}
-
-/** 최종 순위표: 줄 높이를 화면에 나눠 담는다 (10줄 기준, 넘치면 2열) */
-function FinalBoard({ ended }: { ended: Ended }) {
-  const n = ended.scoreboard.length;
-  const twoCol = n > 10;
-  const rows = twoCol ? Math.ceil(n / 2) : 10;
-  return (
-    <div className={`board board--final ${twoCol ? 'two-col' : ''}`} style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
-      {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
-    </div>
   );
 }
 

@@ -68,9 +68,6 @@
   --t-green:  color-mix(in srgb, var(--sig-4) 58%, var(--chalk));
   --t-blue:   color-mix(in srgb, var(--sig-2) 80%, var(--chalk));
   --t-accent: color-mix(in srgb, var(--accent) 58%, var(--chalk));
-  --gold:   #B07F0A;
-  --silver: #6F7883;
-  --bronze: #A5622B;
 }
 [data-tone="dark"] {
   --glass:        rgba(255, 255, 255, .07);
@@ -89,9 +86,6 @@
   --t-green:  var(--sig-4);
   --t-blue:   var(--sig-2);
   --t-accent: var(--accent);
-  --gold:   #FFD24A;
-  --silver: #D3DCF5;
-  --bronze: #E0A15C;
 }
 
 * { box-sizing: border-box; }

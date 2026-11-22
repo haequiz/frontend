@@ -7,27 +7,27 @@ import { api, downloadResults } from '../../lib/api';
 import { applyTheme } from '../../lib/theme';
 import { isAudio, joinUrl, mediaUrl } from '../../lib/config';
 import { GLYPHS, TYPE_LABEL, optionColor, toast } from '../../lib/ui';
-import { Row } from '../../components/Board';
+import { Finalists } from '../../components/Board';
 import { qrDataUrl } from '../../lib/qr';
 import type {
-  BoardRow, Ended, PlayerList, PlayerRow, Playing, Progress, QuestionView, Quiz, QuizSummary, Reveal, Tally,
+  Ended, PlayerList, PlayerRow, Playing, Progress, QuestionView, Quiz, QuizSummary, Reveal, Tally,
 } from '../../lib/types';
 
 /* ============================================================
    진행 화면 (운영자 PC) — 방을 만든 계정만 진행 · 영상 · 관객 화면을 쓴다
    ============================================================ */
 
-type Phase = 'setup' | 'lobby' | 'question' | 'tally' | 'board' | 'end';
+type Phase = 'setup' | 'lobby' | 'question' | 'tally' | 'end';
 
 interface Room {
   pin: string;
   quiz: Quiz;
   maxPlayers: number;
-  offline: boolean;   // 화이트보드 진행: 입장 · 인원수 · 제출 현황 · 순위 없음
+  offline: boolean;   // 화이트보드 진행: 입장 · 인원수 · 제출 현황 · 결선 명단 없음
 }
 
 interface ResumeReply extends Room {
-  state: 'lobby' | 'question' | 'reveal' | 'scoreboard' | 'ended';
+  state: 'lobby' | 'question' | 'reveal' | 'ended';
   qIndex: number;
   video: Playing | null;
   locked: boolean;
@@ -37,13 +37,12 @@ interface ResumeReply extends Room {
   question: QuestionView | null;
   progress: Progress | null;
   reveal: Reveal | null;
-  scoreboard: BoardRow[] | null;
   ended: Ended | null;
 }
 
 const STORE = 'haequiz.host';
 const PHASE_LABEL: Record<Phase, string> = {
-  setup: '준비', lobby: '입장 대기', question: '답안 접수 중', tally: '집계 결과', board: '순위', end: '최종 결과',
+  setup: '준비', lobby: '입장 대기', question: '답안 접수 중', tally: '집계 결과', end: '최종 결과',
 };
 const OFFLINE_LABEL: Record<Phase, string> = { ...PHASE_LABEL, lobby: '대기', question: '문제', tally: '정답 공개', end: '종료' };
 
@@ -60,7 +59,6 @@ export default function HostPage() {
   const [question, setQuestion] = useState<QuestionView | null>(null);
   const [progress, setProgress] = useState<Progress>({ answered: 0, changed: 0, total: 0 });
   const [tally, setTally] = useState<Tally | null>(null);
-  const [board, setBoard] = useState<BoardRow[]>([]);
   const [ended, setEnded] = useState<Ended | null>(null);
   const [video, setVideo] = useState<Playing | null>(null);   // 관객 화면에서 재생 중인 영상
   const [locked, setLocked] = useState(false);                 // 문제 영상 절반 전 — 아직 답을 받지 않는다
@@ -95,7 +93,6 @@ export default function HostPage() {
       setAfterPlayed(r.afterPlayed);
       if (r.state === 'question' && r.question) { setQuestion(r.question); setProgress(r.progress!); setPhase('question'); }
       else if (r.state === 'reveal' && r.reveal) { setTally(r.reveal.tally); setPhase('tally'); }
-      else if (r.state === 'scoreboard' && r.scoreboard) { setBoard(r.scoreboard); setPhase('board'); }
       else if (r.state === 'ended' && r.ended) { setEnded(r.ended); setPhase('end'); }
       else setPhase('lobby');
     } catch (e) {
@@ -144,7 +141,6 @@ export default function HostPage() {
       }),
       rt.on<Progress>('game.progress', (d, ev) => mine(ev) && setProgress(d)),
       rt.on<Reveal>('game.reveal', (d, ev) => { if (mine(ev)) { setTally(d.tally); setPhase('tally'); } }),
-      rt.on<{ scoreboard: BoardRow[] }>('game.scoreboard', (d, ev) => { if (mine(ev)) { setBoard(d.scoreboard); setPhase('board'); } }),
       rt.on<Ended>('game.ended', (d, ev) => { if (mine(ev)) { setEnded(d); setPhase('end'); } }),
       rt.on<{ video: Playing | null; locked: boolean; openingDone: boolean; afterPlayed: boolean }>('game.video', (d, ev) => {
         if (mine(ev)) { setVideo(d.video); setLocked(d.locked); setOpeningDone(d.openingDone); setAfterPlayed(d.afterPlayed); }
@@ -174,13 +170,12 @@ export default function HostPage() {
   /* ---------- 버튼 · 단축키 ---------- */
   const total = room?.quiz.questions.length ?? 0;
   const isLast = qIndex >= total - 1;
-  const afterMedia = phase === 'tally' || phase === 'board' ? room?.quiz.questions[qIndex]?.afterMedia : '';
+  const afterMedia = phase === 'tally' ? room?.quiz.questions[qIndex]?.afterMedia : '';
   const can = {
     start: phase === 'lobby' && !video,   // 오프닝 영상 중에는 다시 누르지 않는다
     endq: phase === 'question',
-    board: phase === 'tally' && !room?.offline,
     after: !!afterMedia && !afterPlayed,
-    next: phase === 'tally' || phase === 'board',
+    next: phase === 'tally',
   };
 
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -189,7 +184,6 @@ export default function HostPage() {
     const k = e.key.toLowerCase();
     if (k === 'f' && room) { e.preventDefault(); togglePresent(); }   // 방을 만들기 전에는 발표 모드 없음
     if (k === 'e' && can.endq) { e.preventDefault(); send('host.endQuestion'); }
-    if (k === 'b' && can.board) { e.preventDefault(); send('host.scoreboard'); }
     if (e.code === 'KeyA' && can.after) { e.preventDefault(); send('host.afterMedia'); }   // 발표 모드에서는 버튼을 누를 수 없다
     if (e.code === 'Space' || k === 'arrowright') {
       e.preventDefault();
@@ -263,7 +257,6 @@ export default function HostPage() {
             </button>
             <button className={`btn ${progress.total > 0 && progress.answered >= progress.total ? 'btn--primary' : ''}`}
               disabled={!can.endq} onClick={() => send('host.endQuestion')}>{offlineRoom ? '정답 공개' : '답안 마감'}</button>
-            {!offlineRoom && <button className="btn" disabled={!can.board} onClick={() => send('host.scoreboard')}>순위 보기</button>}
             {afterMedia && (
               <button className="btn btn--primary" disabled={!can.after} onClick={() => send('host.afterMedia')}>
                 추가 {isAudio(afterMedia) ? '음성' : '영상'} 재생 (A)
@@ -371,7 +364,7 @@ export default function HostPage() {
                   <span>
                     <b>오프라인 모드</b>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--muted)' }}>
-                      참가자는 화이트보드로 답합니다. 입장, 인원수, 제출 현황, 순위를 표시하지 않습니다.
+                      참가자는 화이트보드로 답합니다. 입장, 인원수, 제출 현황, 결선 명단을 표시하지 않습니다.
                     </span>
                   </span>
                 </label>
@@ -493,28 +486,13 @@ export default function HostPage() {
           </section>
         )}
 
-        {phase === 'board' && (
-          <section className="scene scene-scroll on">
-            <p className="eyebrow" style={{ marginBottom: 16 }}>현재 순위</p>
-            <div className="board">{board.map(r => <Row key={r.id ?? r.displayName} r={r} />)}</div>
-          </section>
-        )}
-
         {phase === 'end' && ended && room && (
           <section className="scene on">
             <div className="final-head">
-              <h1>퀴즈 종료</h1>
-              {!offlineRoom && (
-                <p className="final-note">
-                  {ended.totalPlayers > ended.scoreboard.length ? `참여 ${ended.totalPlayers}명 중 상위 ${ended.shownTop}위` : `참여 ${ended.totalPlayers}명`}
-                </p>
-              )}
+              <h1>{offlineRoom ? '퀴즈 종료' : '결선 진출자'}</h1>
+              {!offlineRoom && <p className="final-note">참여 {ended.totalPlayers}명 중 {ended.finalists.length}명</p>}
             </div>
-            {!offlineRoom && (
-              <div className="board board--final">
-                {ended.scoreboard.map((r, i) => <Row key={i} r={r} gain={`${r.correctCount}/${ended.totalQuestions} 정답`} />)}
-              </div>
-            )}
+            {!offlineRoom && <Finalists ended={ended} />}
             <div className="final-actions">
               {!offlineRoom && <button className="btn" onClick={() => downloadResults(room.pin).catch(e => toast(e.message, true))}>결과 CSV 내려받기</button>}
               <button className="btn btn--ghost" onClick={() => { sessionStorage.removeItem(STORE); window.location.reload(); }}>새 퀴즈 진행</button>

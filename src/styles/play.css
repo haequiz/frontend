@@ -179,8 +179,6 @@ input { user-select: text; }
 }
 .answer-note b { color: var(--ok); }
 .medal { font-size: 110px; line-height: 1; }
-.final-rank { font-family: var(--font-num); font-size: 110px; font-weight: 700; line-height: 1; }
-.final-rank small { font-size: 36px; color: var(--muted); }
 
 /* 영상 재생 중 안내 ------------------------------------------- */
 .watch {

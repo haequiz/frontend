@@ -151,19 +151,14 @@
 .rows--screen .row__act { display: none; }   /* 채점 버튼은 운영 화면에만 */
 
 /* 관객석에서도 읽히도록 한 단계씩 키운다 */
-.stage .brow__nick { font-size: 24px; }
-.stage .brow__score { font-size: 26px; }
 .stage .tally-sum { gap: 30px; font-size: 16px; }
 .stage .tally-sum b { font-size: 28px; }
 
 /* ------------------ 최종 결과 ------------------
-   빔 화면은 스크롤할 수 없으므로 상위 10명을 한 화면에 크게 (공통 모양은 host.css 의 .board--final).
-   줄 높이를 남은 화면 높이에 10등분으로 나눠 담아 어떤 해상도에서도 10줄이 다 보이게 한다. */
-#s-end .board--final { overflow: hidden; align-content: stretch; }
-#s-end .board--final .brow { min-height: 0; padding-top: 0; padding-bottom: 0; }
-#s-end .board.two-col { grid-template-columns: 1fr 1fr; grid-auto-flow: column; column-gap: 1.6vw; }
-#s-end .board.two-col .brow__gain { display: none; }   /* 2열이면 이름 자리가 좁아 정답 수는 빼고 */
-#s-end .board.two-col .brow__nick { white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }   /* 긴 이름은 두 줄로 */
+   빔 화면은 스크롤할 수 없으므로 결선 진출자 최대 30명을 한 화면에 (공통 모양은 host.css 의 .finalists).
+   줄 높이를 남은 화면 높이에 나눠 담아 어떤 해상도에서도 10줄이 다 보이게 한다. */
+#s-end .finalists { overflow: hidden; grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); align-content: stretch; }
+#s-end .finalist { min-height: 0; padding-top: 0; padding-bottom: 0; }
 
 /* ------------------ 관객 로비 ------------------
    위에서부터 타이틀 이미지 → QR → PIN → 입장 인원.
