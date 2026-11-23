@@ -48,17 +48,12 @@
 }
 .q-center .q-media { flex: 0 1 auto; max-height: 32vh; }
 
-/* 배점: 0점(연습문제)은 핑크 하트, 10 · 20 · 30점은 숫자. 문제가 드러날 때 튀어나온다 */
-.q-heart, .q-points { flex: none; animation: points-pop .55s cubic-bezier(.2, 1.6, .4, 1) both; }
+/* 0점(연습문제)은 핑크 하트. 문제가 드러날 때 튀어나온다 (배점 숫자는 정답 공개 때 .score-pop 으로) */
 .q-heart {
+  flex: none; animation: points-pop .55s cubic-bezier(.2, 1.6, .4, 1) both;
   width: clamp(64px, 11vh, 130px); height: auto; aspect-ratio: 1;
   fill: #FF6FAE; stroke: rgba(0, 0, 0, .35); stroke-width: .5;
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .3));
-}
-.q-points {
-  padding: .08em .6em; border-radius: 999px;
-  background: var(--stage-3); border: 2px solid var(--line); color: var(--chalk);
-  font-size: clamp(36px, 6.5vh, 80px); font-weight: 900; line-height: 1.2;
 }
 @keyframes points-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -131,6 +126,30 @@
 @keyframes answer-in {
   from { opacity: 0; transform: scale(.9) }
   to   { opacity: 1; transform: none }
+}
+
+/* 배점 "+10" — 정답 상자가 뜬 뒤 오른쪽 아래 모서리에서 작게 나타나 크게 부풀고,
+   위로 솟았다가 통통 내려앉아 스티커처럼 붙어 있는다.
+   위 모서리는 긴 문제 글자를 가리므로 아래에 — 그 자리는 가운데 정렬된 집계 · 막대가 닿지 않는다 */
+.answer-hero { position: relative; }
+.score-pop {
+  position: absolute; bottom: 0; right: 0;
+  translate: 24% 42%; rotate: -6deg;   /* 자리 · 기울기. 움직임은 transform 으로 따로 */
+  padding: .04em .42em; border-radius: 999px;
+  background: var(--sig-3); color: var(--sig-3-ink);
+  border: 3px solid rgba(255, 255, 255, .75);
+  box-shadow: var(--shadow), 0 0 40px var(--glow-b);
+  font-size: clamp(40px, 8vh, 96px); font-weight: 900; line-height: 1.15; letter-spacing: -.02em;
+  white-space: nowrap; pointer-events: none;
+  animation: score-pop 1.4s .45s both;
+}
+@keyframes score-pop {
+  0%   { opacity: 0; transform: scale(.2); animation-timing-function: cubic-bezier(.2, .8, .3, 1.15); }
+  24%  { opacity: 1; transform: scale(1.45); animation-timing-function: ease-out; }    /* 작던 글씨가 크게 */
+  50%  { transform: translateY(-.75em) scale(1.2); animation-timing-function: ease-in; }  /* 위로 솟았다가 */
+  70%  { transform: translateY(.06em) scale(1.06, .92); animation-timing-function: ease-out; }  /* 내려앉으며 */
+  85%  { transform: translateY(-.1em) scale(1.03); animation-timing-function: ease-in-out; }  /* 통 */
+  100% { opacity: 1; transform: none; }
 }
 
 .bars--compact {

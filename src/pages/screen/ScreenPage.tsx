@@ -265,13 +265,13 @@ export default function ScreenPage() {
                 </div>
               )}
               <div className="q-center">
-                {/* 배점: 0점(연습문제)은 하트, 10 · 20 · 30점은 숫자. 문제 영상이 끝나고 이 화면이 드러날 때 튀어나오게, 영상이 도는 동안은 그리지 않는다 */}
+                {/* 0점(연습문제)은 하트. 배점은 문제를 낼 때 띄우지 않고 정답 공개 때 "+10" 으로 알린다.
+                    문제 영상이 끝나고 이 화면이 드러날 때 튀어나오게, 영상이 도는 동안은 그리지 않는다 */}
                 {!playing && question.points === 0 && (
                   <svg className="q-heart" viewBox="0 0 24 24" role="img" aria-label="연습문제">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                 )}
-                {!playing && [10, 20, 30].includes(question.points) && <span className="q-points num">{question.points}점</span>}
                 <p className="eyebrow">문제 {question.index + 1} / {question.total} · {TYPE_LABEL[question.type]}</p>
                 <h1 className="q-big">{question.text}</h1>
                 {question.image && <div className="q-media on"><img src={mediaUrl(question.image)} alt="" /></div>}
@@ -284,6 +284,8 @@ export default function ScreenPage() {
             <section className="scene on" id="s-tally">
               <p className="tally-q">{tally.index + 1}. {tally.question}</p>
               <div className={`answer-hero ${tally.type === 'ox' ? 'answer-hero--ox' : ''}`}>
+                {/* 이 문제 배점. 방금 낸 문제의 배점을 쓰므로 정답 공개 도중에 화면을 새로 열면 띄우지 않는다 */}
+                {question?.index === tally.index && question.points > 0 && <span className="score-pop">+{question.points}</span>}
                 <span className="answer-hero__label">정답</span>
                 <div className="answer-hero__value">{tally.correctLabels.join(' / ') || '—'}</div>
                 {tally.explanation && <p className="answer-hero__why">{tally.explanation}</p>}
